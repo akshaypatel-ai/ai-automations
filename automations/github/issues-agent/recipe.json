@@ -1,0 +1,10 @@
+{
+  "name": "GitHub Issues Agent",
+  "description": "Label-driven board flow on GitHub Issues: label an issue for analysis → options and trade-offs in a comment; discuss; label it for implementation → ready-for-review PR. Native Actions triggers — no relay, no webhook, no extra tool token.",
+  "tool": "github",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["issues"],
+  "requires": ["git", "jq", "gh"]
+}

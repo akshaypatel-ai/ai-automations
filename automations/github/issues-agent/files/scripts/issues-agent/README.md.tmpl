@@ -1,0 +1,47 @@
+# {{AGENT_NAME}} — GitHub Issues Agent (operations)
+
+Watches this repository's issues and reacts to the **{{LABEL_ANALYZE}}** /
+**{{LABEL_IMPLEMENT}}** labels. Event-driven — no cron, no relay, no servers.
+Installed by [ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+GitHub event (native Actions trigger — issues:labeled / issue_comment:created)
+  → .github/workflows/issues-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one issue comment) |
+|---|---|---|
+| Issue labeled **{{LABEL_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{LABEL_ANALYZE}} issue | `respond` | Answer / updated proposal / remaining questions |
+| Issue labeled **{{LABEL_IMPLEMENT}}** (or comment there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `issues-agent-state` (`state/<number>.json`:
+labels, phase, last_comment_id, branch, pr_url). Every run re-fetches truth
+from the GitHub API and diffs against it — events are only doorbells. Agent
+comments are prefixed `{{AGENT_MARKER}} — `; the workflow's `if:` guard and
+the resolver both skip marker/bot comments (loop protection). Comment recency
+is tracked by the numeric comment id.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Issues Agent* → *Run workflow* — empty `item_id` reconciles both watched labels + tracked issues; an issue number processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/issues-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** `gh workflow disable "Issues Agent"` (re-enable with `gh workflow enable`).
+- **Known blind spot:** re-applying a label the issue already has fires no event — re-trigger with a comment or a manual run.
+- **Public-repo safety:** nothing runs until a maintainer applies a watched label; comments alone never start work on an untracked issue.
+
+## Local dry-run (safe — needs `gh` authenticated with access to {{GITHUB_REPO}})
+
+```bash
+DRY_RUN=1 bash scripts/issues-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<issue_number> bash scripts/issues-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Issue writes are **comments only** — the agent never labels, closes, assigns, or edits issues; humans own the tracker.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<kebab-slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

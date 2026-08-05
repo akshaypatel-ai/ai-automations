@@ -1,0 +1,107 @@
+name: Issues Agent
+
+# The relay-free recipe: GitHub is both the tool and the runtime, so native
+# Actions triggers replace the webhook→relay→dispatch chain entirely.
+# Nothing runs until a maintainer applies a watched label — that's the
+# security model for public repos. workflow_dispatch is the manual
+# reconcile/recovery button (empty item_id = scan watched labels + tracked).
+on:
+  issues:
+    types: [ labeled ]
+  issue_comment:
+    types: [ created ]
+  workflow_dispatch:
+    inputs:
+      item_id:
+        description: 'Issue number; empty = reconcile everything watched'
+        required: false
+        default: ''
+      item_type:
+        description: 'Optional type hint (Issue)'
+        required: false
+        default: 'Issue'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+# One run per item at a time; queued runs are safe because every run processes
+# "everything new since saved state", not just the event that woke it.
+concurrency:
+  group: issues-agent-${{ github.event.issue.number || inputs.item_id || 'reconcile' }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Edge filtering (what a relay would do): only watched labels wake the
+    # agent; PR comments, bot comments, and the agent's own marker-prefixed
+    # comments never trigger a run.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       (github.event.label.name == '{{LABEL_ANALYZE}}' ||
+        github.event.label.name == '{{LABEL_IMPLEMENT}}')) ||
+      (github.event_name == 'issue_comment' &&
+       !github.event.issue.pull_request &&
+       github.event.comment.user.type != 'Bot' &&
+       !startsWith(github.event.comment.body, '{{AGENT_MARKER}}'))
+    env:
+      # Prefer a PAT: PRs opened with the built-in GITHUB_TOKEN don't trigger
+      # pull_request workflows and need manual approval.
+      GH_TOKEN: ${{ secrets.AGENT_GH_PAT || secrets.GITHUB_TOKEN }}
+      # Auth for the AI brain: set ONE of these secrets. CLAUDE_CODE_OAUTH_TOKEN
+      # (from `claude setup-token`, Pro/Max subscription) or ANTHROPIC_API_KEY
+      # (pay-per-token). If both are set, the API key wins.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Same PAT for git pushes, so branch pushes also trigger CI.
+          token: ${{ secrets.AGENT_GH_PAT || github.token }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check GitHub auth
+        run: |
+          gh api "repos/{{GITHUB_REPO}}" --jq .full_name >/dev/null
+          echo "GitHub auth OK"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run agent
+        env:
+          ITEM_ID: ${{ github.event.issue.number || inputs.item_id }}
+          ITEM_TYPE: ${{ inputs.item_type || 'Issue' }}
+          EVENT_KIND: ${{ github.event_name == 'workflow_dispatch' && 'manual' || format('{0}-{1}', github.event_name, github.event.action) }}
+        # Unset empty auth vars — an empty ANTHROPIC_API_KEY would shadow the
+        # OAuth token in Claude Code's credential precedence.
+        run: |
+          # Trim whitespace pasted into the secrets; a stray space breaks the bearer token.
+          ANTHROPIC_API_KEY="$(printf '%s' "${ANTHROPIC_API_KEY:-}" | tr -d '[:space:]')"
+          CLAUDE_CODE_OAUTH_TOKEN="$(printf '%s' "${CLAUDE_CODE_OAUTH_TOKEN:-}" | tr -d '[:space:]')"
+          [ -z "$ANTHROPIC_API_KEY" ] && unset ANTHROPIC_API_KEY
+          [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && unset CLAUDE_CODE_OAUTH_TOKEN
+          if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::Set repo secret CLAUDE_CODE_OAUTH_TOKEN (subscription) or ANTHROPIC_API_KEY (API billing)."
+            exit 1
+          fi
+          bash scripts/issues-agent/agent-run.sh
+
+      - name: Upload agent output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-output-${{ github.run_id }}
+          path: .agent-out/
+          if-no-files-found: ignore
