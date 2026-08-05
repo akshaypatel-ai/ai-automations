@@ -1,0 +1,51 @@
+# {{AGENT_NAME}} — Help Scout Triage Agent (operations)
+
+Watches Help Scout conversations and drafts grounded replies as INTERNAL
+notes — a human sends every customer-facing reply. Event-driven — no cron, no
+servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Help Scout webhook (signed: X-HelpScout-Signature = base64 HMAC-SHA1 of the body)
+  → Cloudflare Worker relay            scripts/helpscout-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/helpscout-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output |
+|---|---|---|
+| New conversation | `triage` | ONE internal note (draft reply + category); GitHub issue only for real bugs |
+| New customer reply on a tracked conversation | `respond` | Updated internal note — or silence when an agent already handled it |
+
+State lives on the orphan branch `helpscout-agent-state` (`state/<conversation_id>.json`:
+phase, last_thread_id, issue_url). Every run re-fetches truth from Help
+Scout's API and diffs against it — webhook payloads are only doorbells. Agent
+notes are prefixed `{{AGENT_MARKER}} — `; the resolver routes on thread TYPES
+(`customer` = customer message, `message` = agent public reply, `note`/`lineitem`
+never count), with recency tracked by the numeric thread id. Auth is OAuth2
+client-credentials: `api.sh` fetches its own bearer token (~48h life) and
+caches it in `$OUT_DIR/.hs-token`, refreshing after 100 minutes — the dotfile
+name keeps it out of the uploaded artifacts, which skip hidden files.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Help Scout Triage Agent* → *Run workflow* — empty `item_id` reconciles recent active conversations + tracked ones; a conversation id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/helpscout-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** Manage → Apps → Webhooks → deactivate the webhook (or deselect its events) — no code change needed.
+
+## Local dry-run (safe — needs HELPSCOUT_APP_ID + HELPSCOUT_APP_SECRET exported)
+
+```bash
+DRY_RUN=1 bash scripts/helpscout-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<conversation_id> bash scripts/helpscout-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Help Scout writes are **internal notes only** — `note.sh` posts to the `/notes` endpoint, so the agent is structurally unable to message customers; a human sends every reply.
+- Never changes conversation status, assignee, or tags — humans own the queue.
+- Never escalates twice: the GitHub issue URL is saved in state (`issue_url`); follow-ups comment on that issue instead of opening a new one.
+- No customer personal data (names, emails) in GitHub issues — describe, don't paste.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
