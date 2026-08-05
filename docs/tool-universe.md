@@ -14,7 +14,7 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 | ✅ Notion | Yes (webhooks, 2024+) | **Built**: [`notion/project-agent`](../automations/notion/project-agent) |
 | ✅ GitHub Issues | Native Actions triggers — **no relay needed** | **Built**: [`github/issues-agent`](../automations/github/issues-agent) |
 | ✅ GitLab Issues | Yes (project webhooks, X-Gitlab-Token) | **Built**: [`gitlab/issues-agent`](../automations/gitlab/issues-agent) |
-| Shortcut (ex-Clubhouse) | Yes | Story workflow states |
+| ✅ Shortcut | Yes (Payload-Signature HMAC) | **Built**: [`shortcut/project-agent`](../automations/shortcut/project-agent) |
 | Height | Yes | API-first, Linear-like |
 | Todoist | Yes | Personal/small-team tasks |
 | Wrike, Teamwork, Zoho Projects | Yes | Enterprise long tail |

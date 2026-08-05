@@ -1,0 +1,51 @@
+# {{AGENT_NAME}} — Shortcut Project Agent (operations)
+
+Watches Shortcut stories and reacts to workflow-state moves and comments.
+Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Shortcut outgoing webhook (HMAC-SHA256 verified via Payload-Signature)
+  → Cloudflare Worker relay            scripts/shortcut-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/shortcut-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one Shortcut comment) |
+|---|---|---|
+| Story enters **{{STATE_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{STATE_ANALYZE}} story | `respond` | Answer / updated proposal / remaining questions |
+| Story enters **{{STATE_IMPLEMENT}}** (or comment there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `shortcut-agent-state` (`state/<story_id>.json`:
+state_name, phase, last_comment_id, branch, pr_url). Every run re-fetches truth
+from Shortcut's API and diffs against it — webhook payloads are only doorbells.
+Stories carry a numeric `workflow_state_id`; the resolver maps it to its name
+via `/workflows` and matches case-insensitively. Comments ride inline on the
+story fetch; recency is tracked by the numeric comment id. Deliveries batch
+several actions — the relay dedupes ids and dispatches at most 10 per delivery
+(a reconcile run catches the rest). Agent comments are prefixed
+`{{AGENT_MARKER}} — `; the resolver and relay both skip marker comments
+(loop protection).
+
+## Operating
+
+- **Recover / backfill:** Actions → *Shortcut Project Agent* → *Run workflow* — empty `item_id` reconciles both watched states + tracked stories; a story id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/shortcut-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** disable or delete the outgoing webhook (Shortcut → Settings → API → Webhooks).
+- **Known blind spot:** moving a story back into a watched state silently — re-trigger with a comment or a manual run.
+
+## Local dry-run (safe — needs SHORTCUT_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/shortcut-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<story_id> bash scripts/shortcut-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Shortcut writes are **comments only** — the agent never moves stories, changes workflow states, owners, or archives anything; humans own the board.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<kebab-slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

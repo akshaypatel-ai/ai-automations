@@ -1,0 +1,10 @@
+{
+  "name": "Shortcut Project Agent",
+  "description": "Watches Shortcut stories: analyzes stories entering your analyze workflow state, discusses in comments, and implements stories moved to your build state as ready-for-review PRs. Relay routes all webhook actions; the stories handler is fully implemented.",
+  "tool": "shortcut",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["stories", "epics", "iterations"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}
