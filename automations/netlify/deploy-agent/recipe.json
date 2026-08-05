@@ -1,0 +1,10 @@
+{
+  "name": "Netlify Deploy Agent",
+  "description": "Turns failed Netlify deploys into repo-grounded triage issues: fetches the deploy, reads the repo at the implicated build config (netlify.toml, package scripts), and files ONE GitHub issue (what failed, what the error means, likely cause, where to look). New failures of the same commit become comments — never duplicates. JWS-verified notification relay; the deploys handler is fully implemented.",
+  "tool": "netlify",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["deploys"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

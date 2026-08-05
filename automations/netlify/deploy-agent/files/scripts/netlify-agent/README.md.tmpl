@@ -1,0 +1,55 @@
+# {{AGENT_NAME}} — Netlify Deploy Agent (operations)
+
+Watches Netlify deploys of this repo and turns failed builds into grounded
+GitHub triage issues. Event-driven — no cron, no servers to maintain.
+Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Netlify "Deploy failed" notification (JWS-verified: HS256 JWT + body-sha256 claim)
+  → Cloudflare Worker relay            scripts/netlify-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/netlify-agent.yml
+  → agent-run.sh                       restore state → resolve → error context → playbook → save state
+```
+
+| Trigger | Playbook | Output (GitHub only — Netlify is never written) |
+|---|---|---|
+| A deploy ends in error | `analyze` | ONE GitHub issue labeled `{{ISSUE_LABEL}}`: what failed, the error, likely cause (code-verified), where to look, links — or ONE comment when the same commit sha already has an open issue |
+
+State lives on the orphan branch `netlify-agent-state`
+(`state/<deploy_id>.json`: phase, gh_issue_url, commit_sha). Every run
+re-fetches truth from Netlify's API and diffs against it — notification
+payloads are only doorbells. Dedupe is **sha-search based**, not state-keyed:
+state only prevents reprocessing the same deploy (retriggers, duplicate
+deliveries); a NEW deploy of an already-failed commit is caught by the
+playbook searching open `{{ISSUE_LABEL}}` issues for the commit sha and
+commenting instead of filing. Netlify's build-log API is not public/stable,
+so the prompt context is the deploy's `error_message` (often the failing step
+plus the last lines of build output) — the playbook leans on reading THIS
+repo's build config (netlify.toml, package scripts) to ground the triage, and
+links the dashboard deploy log for the full output. Issue bodies and comments
+end with the `{{AGENT_MARKER}}` footer.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Netlify Deploy Agent* → *Run workflow* — empty `item_id` reconciles the 10 most recent failed deploys of the site (`state=error`) + tracked ones; a deploy id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact (prompt, error context, stream).
+- **Model:** `CLAUDE_MODEL` in `scripts/netlify-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** delete (or disable) the notification in Netlify Site configuration → Notifications → Deploy notifications — the relay can stay deployed; recreating the notification reuses the JWS secret you chose (or pick a new one and `wrangler secret put NETLIFY_JWS_SECRET` again).
+- **Known blind spot:** deploys that fail while the notification is down are only caught by the reconcile button — it scans the site's last 10 failed deploys.
+
+## Local dry-run (safe — needs NETLIFY_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/netlify-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<deploy_id> bash scripts/netlify-agent/agent-run.sh
+```
+
+## Guardrails
+
+- ONE GitHub issue per failing commit sha — new failed deploys of the same commit become comments on it; closed issues are left closed.
+- Netlify access is READ-ONLY — the agent never retries, cancels, locks, unlocks, or publishes a deploy; humans own the deploy pipeline.
+- No secrets from error output: env values, tokens, and connection strings that leak into the error message are scrubbed before anything reaches GitHub.
+- Never writes code — git stays clean apart from the state branch.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
