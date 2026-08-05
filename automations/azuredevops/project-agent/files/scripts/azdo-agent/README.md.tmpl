@@ -1,0 +1,62 @@
+# {{AGENT_NAME}} — Azure DevOps Project Agent (operations)
+
+Watches Azure DevOps project **{{AZDO_PROJECT}}** on dev.azure.com/{{AZDO_ORG}}
+and reacts to work-item activity. Event-driven — no cron, no servers to
+maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (your answers are saved in `automation.config.json`).
+
+```
+Azure DevOps service hooks (URL-secret authenticated; 3 web-hook subscriptions)
+  → Cloudflare Worker relay            scripts/azdo-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/azdo-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one work-item comment) |
+|---|---|---|
+| Work item enters **{{STATE_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{STATE_ANALYZE}} work item | `respond` | Answer / updated proposal / remaining questions |
+| Work item enters **{{STATE_IMPLEMENT}}** (or comment there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `azdo-agent-state` (`state/<work_item_id>.json`:
+state_name, phase, last_comment_id, branch, pr_url). Every run re-fetches truth
+from the REST API and diffs against it — webhook payloads are only doorbells,
+so duplicate or stale events are harmless. Agent comments are prefixed
+`{{AGENT_MARKER}} — `; the resolver and the relay both skip marker-prefixed
+comments (loop protection — the resolver strips HTML tags before the check).
+Comment recency is tracked by numeric comment ids (increasing).
+
+## Azure DevOps mechanics worth knowing
+
+- **Auth**: PAT via basic auth with an empty username (`-u ":$AZDO_PAT"`).
+- **api-version**: every call needs one — `api.sh` appends `api-version=7.1`
+  unless the path pins its own; the comments endpoints pin `7.1-preview.4`.
+- **Per-event id quirk**: `workitem.created`/`workitem.commented` carry
+  `resource.id`; `workitem.updated` carries `resource.workItemId` — the relay
+  handles both.
+- **Comments are HTML both ways**: `comment.sh` takes plain text and converts.
+- **Reconcile**: WIQL per watched state (single quotes in state names are
+  doubled), plus every tracked state file.
+
+## Operating
+
+- **Recover from a missed webhook / backfill:** Actions → *Azure DevOps Project Agent* → *Run workflow* — empty `item_id` reconciles both watched states (WIQL) plus every tracked work item; a specific id (e.g. `42`) processes one.
+- **Transcripts:** every run uploads `.agent-out/` (prompt, full AI transcript, result JSON) as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/azdo-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause the agent:** disable the three subscriptions: Project settings → Service hooks.
+- **Known blind spot:** moving a work item back into a watched state *without saying anything* can be dropped if the "Work item updated" subscription's field filter was set differently — re-trigger with a comment or a manual run.
+
+## Local dry-run (safe: no comments, no AI, no state push — needs AZDO_PAT)
+
+```bash
+DRY_RUN=1 bash scripts/azdo-agent/agent-run.sh                # reconcile scan
+DRY_RUN=1 ITEM_ID=<42> bash scripts/azdo-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Azure DevOps writes are **comments only** — the agent never changes state, assignee, iteration, tags, or any other field; humans own the board.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/ab-<id>-<slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` is used only inside the disposable CI runner, never locally (local runs are `DRY_RUN` and stop before any AI call).
+- The relay authenticates deliveries via the secret in the webhook URL (service hooks don't sign payloads); the subscription form's optional Basic-auth fields are available as extra hardening on top.

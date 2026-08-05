@@ -19,7 +19,7 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 | ✅ Todoist | Yes (app webhooks, base64 HMAC) | **Built**: [`todoist/project-agent`](../automations/todoist/project-agent) |
 | Wrike, Teamwork, Zoho Projects | Yes | Enterprise long tail |
 | ✅ Airtable | Yes (thin-ping webhooks, MAC) | **Built**: [`airtable/project-agent`](../automations/airtable/project-agent) |
-| Azure DevOps (Boards) | Yes (service hooks) | Enterprise; pairs with Pipelines runtime |
+| ✅ Azure DevOps Boards | Yes (service hooks, URL secret) | **Built**: [`azuredevops/project-agent`](../automations/azuredevops/project-agent) |
 
 ## Chat & messaging (triage/notify patterns)
 

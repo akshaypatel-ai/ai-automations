@@ -1,0 +1,10 @@
+{
+  "name": "Azure DevOps Project Agent",
+  "description": "Watches an Azure DevOps Boards project: analyzes work items entering your analyze state, discusses in comments, and implements work items moved to your build state as ready-for-review PRs. Relay routes work-item service-hook events; the workitems handler is fully implemented.",
+  "tool": "azuredevops",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["workitems"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

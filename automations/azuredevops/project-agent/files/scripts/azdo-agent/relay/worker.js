@@ -1,0 +1,102 @@
+/**
+ * Azure DevOps Boards → GitHub Actions relay (Cloudflare Worker).
+ *
+ * Azure DevOps service hooks don't sign payloads, so authentication is the
+ * secret embedded in the URL path (like Jira/Basecamp). The subscription form
+ * also offers optional Basic auth — layer it on as extra hardening if you
+ * like; the URL secret is the baseline. The Worker filters to events an
+ * enabled handler can act on and forwards a trimmed payload.
+ *
+ * Vars (wrangler.toml):  GITHUB_REPO, ENABLED_HANDLERS, AGENT_MARKER
+ * Secrets (wrangler secret put):  GITHUB_PAT, WEBHOOK_SECRET
+ */
+
+/** eventType prefix → handler family. */
+function handlerFor(eventType) {
+  if (eventType.startsWith('workitem.')) return 'workitems';
+  return null;
+}
+
+export default {
+  async fetch(request, env) {
+    if (request.method !== 'POST') {
+      return new Response('method not allowed', { status: 405 });
+    }
+
+    const url = new URL(request.url);
+    if (url.pathname !== `/hook/${env.WEBHOOK_SECRET}`) {
+      return new Response('not found', { status: 404 });
+    }
+
+    let event;
+    try {
+      event = await request.json();
+    } catch {
+      return new Response('bad json', { status: 400 });
+    }
+
+    const eventType = event.eventType || '';
+    const handler = handlerFor(eventType);
+    const enabled = (env.ENABLED_HANDLERS || '').split(',').map((s) => s.trim()).filter(Boolean);
+    if (!handler || !enabled.includes(handler)) {
+      return new Response('ignored: no enabled handler for ' + (eventType || 'unknown'), { status: 200 });
+    }
+
+    const resource = event.resource || {};
+
+    /**
+     * "Work item updated" fires on every field edit. The subscription's State
+     * field filter should already drop non-state edits server-side — keep the
+     * edge check for subscriptions created without it, and fail open when the
+     * changed-fields map is absent.
+     */
+    if (eventType === 'workitem.updated' && resource.fields) {
+      if (!('System.State' in resource.fields)) {
+        return new Response('ignored: non-state work item edit', { status: 200 });
+      }
+    }
+
+    /**
+     * The agent's own comments echo back — the marker identifies them. The
+     * commented payload carries the comment HTML in resource.fields
+     * ["System.History"] (older shape) or resource.comment.text — check
+     * defensively; absent text forwards (the resolver is the real guard).
+     */
+    if (eventType === 'workitem.commented' && env.AGENT_MARKER) {
+      const text = String(resource.fields?.['System.History'] || resource.comment?.text || '');
+      if (text && text.slice(0, 200).includes(env.AGENT_MARKER)) {
+        return new Response('ignored: agent comment echo', { status: 200 });
+      }
+    }
+
+    /** created/commented carry resource.id; updated carries resource.workItemId. */
+    const itemId = resource.workItemId || resource.id || '';
+    if (!itemId) {
+      return new Response('ignored: no work item id', { status: 200 });
+    }
+
+    const resp = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/dispatches`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.GITHUB_PAT}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'ai-automations-azdo-relay',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        event_type: 'azdo_event',
+        client_payload: {
+          kind: eventType,
+          item_id: String(itemId),
+          item_type: 'WorkItem',
+          recording_type: 'workitems',
+        },
+      }),
+    });
+
+    if (!resp.ok) {
+      return new Response(`github dispatch failed: ${resp.status}`, { status: 502 });
+    }
+    return new Response('dispatched', { status: 200 });
+  },
+};

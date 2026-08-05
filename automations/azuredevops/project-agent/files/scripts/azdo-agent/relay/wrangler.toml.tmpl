@@ -1,0 +1,12 @@
+name = "{{WORKER_NAME}}"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (set with `wrangler secret put`):
+#   GITHUB_PAT      fine-grained PAT scoped to {{GITHUB_REPO}} only, contents: read+write
+#   WEBHOOK_SECRET  random string embedded in the webhook URL (e.g. openssl rand -hex 24)
+
+[vars]
+GITHUB_REPO = "{{GITHUB_REPO}}"
+ENABLED_HANDLERS = "{{HANDLERS}}"
+AGENT_MARKER = "{{AGENT_MARKER}}"
