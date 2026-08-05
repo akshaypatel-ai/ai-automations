@@ -1,0 +1,10 @@
+{
+  "name": "Discord Notify Agent",
+  "description": "AI-written ship/deploy/incident notifications pushed to a Discord channel via GitHub-native triggers (no relay), plus an optional /ask slash command answered from the repo through an Ed25519-verified interactions relay.",
+  "tool": "discord",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["ship", "incident", "ask"],
+  "requires": ["git", "jq", "gh", "curl"]
+}

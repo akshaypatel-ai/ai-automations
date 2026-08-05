@@ -1,0 +1,46 @@
+# {{AGENT_NAME}} — Discord Notify Agent (operations)
+
+AI-written notifications pushed to Discord, plus optional `/ask` Q&A.
+Installed by [ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+ship:     release published        → GitHub-native trigger → push.sh (channel webhook)
+incident: monitored workflow fails → GitHub-native trigger → push.sh (channel webhook)
+ask:      /ask slash command       → interactions relay (Ed25519) → repository_dispatch
+                                     → followup.sh (interaction webhook, 15-min token)
+```
+
+| Handler | Trigger | Output |
+|---|---|---|
+| `ship` | `release: published` | Plain-language what's-new announcement (grounded — never invented) |
+| `incident` | monitored `workflow_run` fails | Calm what/impact/likely-cause note with the run link |
+| `ask` | `/ask question:…` in Discord | Repo-grounded answer replacing the "thinking…" placeholder |
+
+Stateless — notifications are one-shot; there's no state branch. Messages are
+capped defensively (Discord's 2000-char limit) and can never ping
+@everyone/@here/roles (`allowed_mentions` is empty at the API level).
+
+## Operating
+
+- **Manual test:** Actions → *Discord Notify Agent* → *Run workflow* → mode.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/discord-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause ship/incident:** `gh workflow disable "Discord Notify Agent"`.
+- **Pause ask:** clear the Interactions Endpoint URL in the Discord Developer Portal.
+- **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/discord-agent.yml` — edit and merge to change.
+
+## Local dry-run (safe — no AI, nothing sent)
+
+```bash
+DRY_RUN=1 MODE=ship RELEASE_TAG=v0.0.0 bash scripts/discord-agent/agent-run.sh
+DRY_RUN=1 MODE=incident WF_NAME=CI bash scripts/discord-agent/agent-run.sh
+DRY_RUN=1 MODE=ask ASK_TEXT="how does login work?" bash scripts/discord-agent/agent-run.sh
+```
+
+## Guardrails
+
+- One message per event; pushes only through the configured channel webhook / interaction follow-up.
+- No invented features, no speculative root causes stated as fact; `ask` never writes code.
+- Structural no-ping: `allowed_mentions: []` on every message.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
