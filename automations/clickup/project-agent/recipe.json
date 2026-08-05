@@ -1,8 +1,8 @@
 {
   "name": "ClickUp Project Agent",
-  "description": "DESIGNED, NOT YET BUILT — all ClickUp webhook events (tasks, comments, lists, folders, spaces, goals, time tracking) via toggleable handlers; board flow through status changes. See README.md for the implementation spec.",
+  "description": "Watches a ClickUp list: analyzes tasks entering your analyze status, discusses in comments, and implements tasks moved to your build status as ready-for-review PRs. Relay routes all webhook events; the tasks handler is fully implemented.",
   "tool": "clickup",
-  "status": "planned",
+  "status": "beta",
   "runtime": "github-actions",
   "brains": ["claude-code"],
   "handlers": ["tasks", "lists", "folders", "goals", "time"],

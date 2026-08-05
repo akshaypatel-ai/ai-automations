@@ -1,33 +1,55 @@
-# ClickUp Project Agent — design (not yet built)
+# ClickUp Project Agent
 
-The multi-event agent pattern applied to a ClickUp space/list. Status:
-**designed** — this document is the implementation spec; Basecamp and Linear
-are the reference implementations to port from.
+The board-agent flow on ClickUp: a task enters your **analyze** status (e.g.
+to do) → the agent posts an analysis (options, trade-offs, recommendation) or
+clarifying questions; discuss in the task's comments; move it to your
+**implement** status (e.g. in progress) → it builds the agreed change and opens
+a ready-for-review PR. It never changes task statuses and never merges —
+humans own the board.
 
-## Event coverage (webhook events → handler families)
+Status: **beta** — a faithful port of the production-proven Basecamp/Linear
+flow to ClickUp's REST v2 API; needs live-fire testing against a real workspace.
 
-ClickUp webhooks are created via API on a team, optionally scoped to a
-space/folder/list, with an explicit `events` array:
+## Event coverage (relay routes the full webhook surface)
 
-| Handler | ClickUp events | Interaction pattern |
+| Handler | ClickUp events | Status |
 |---|---|---|
-| `tasks` | `taskCreated`, `taskUpdated`, `taskStatusUpdated`, `taskCommentPosted`, `taskAssigneeUpdated`, `taskPriorityUpdated`, `taskDueDateUpdated`, `taskMoved`, `taskDeleted` | Board flow via statuses: analyze status → options/questions; implement status → PR; comments route to their task |
-| `lists` | `listCreated`, `listUpdated`, `listDeleted` | Inert by default |
-| `folders`/`spaces` | `folderCreated/Updated/Deleted`, `spaceCreated/Updated/Deleted` | Inert by default |
-| `goals` | `goalCreated`, `goalUpdated`, `keyResultCreated`, `keyResultUpdated` | Progress summary on request — silent by default |
-| `time` | `taskTimeEstimateUpdated`, `taskTimeTrackedUpdated` | Inert by default |
+| `tasks` | `taskCreated`, `taskStatusUpdated`, `taskCommentPosted`, `taskMoved` (noisy field-edit events dropped at the edge) | ✅ implemented (analyze / respond / implement playbooks) |
+| `lists` / `folders` | `list*`, `folder*`, `space*` | Routed, skips cleanly (playbook pending) |
+| `goals` | `goal*`, `keyResult*` | Routed, skips cleanly (playbook pending) |
+| `time` | `taskTime*` | Routed, skips cleanly (inert by design) |
 
-## Mechanics
+## ClickUp-specific mechanics
 
-- **API**: REST v2 (`https://api.clickup.com/api/v2/...`), auth: personal token in the `Authorization` header. Comments: `POST /task/{id}/comment` with `comment_text` (plain text/markdown).
-- **Webhook signing**: creating the webhook returns a `secret`; every delivery carries `X-Signature` = HMAC-SHA256(body) — verify in the Worker (same WebCrypto code as Linear).
-- **Statuses**: per-list status names — the resolver diffs `status.status` against saved state; configurable analyze/implement status names (like Linear/Jira).
-- **`taskStatusUpdated`** gives precise doorbells (no noisy-field filtering needed); `taskUpdated` can stay unrouted.
-- **Comment recency**: comment ids are numeric-ish strings with a `date` field — use `date` like Linear's `createdAt`.
-- **Webhook health**: ClickUp auto-disables failing webhooks and reports `health` on `GET /team/{id}/webhook` — surface in the doctor command.
+- **Signature**: every delivery carries `X-Signature` = hex HMAC-SHA256 of the body, keyed with the secret returned at webhook creation — verified at the edge.
+- **Precise doorbells**: `taskStatusUpdated` fires exactly on status changes, so there is less edge filtering to do than on Jira/Trello.
+- **Statuses are per-list and lowercase** — matching is case-insensitive.
+- **Comment recency**: ms-epoch `date` field, compared numerically.
+- **Webhook health**: ClickUp auto-disables failing webhooks; `GET /team/<id>/webhook` shows health for debugging.
 
-## Installer questions
+## Install
 
-Team (workspace) id, list/space scope, analyze/implement status names,
-handlers, standard conventions. Secrets: `CLICKUP_TOKEN`, brain auth,
-`AGENT_GH_PAT`. Relay secrets: `GITHUB_PAT`, `CLICKUP_WEBHOOK_SECRET`.
+```bash
+./setup.sh clickup/project-agent
+```
+
+Asks for: target repo, team (workspace) id, list id, the two status names, and
+the standard conventions. Secrets: `CLICKUP_TOKEN`, Claude auth (+ optional
+`AGENT_GH_PAT`); relay: `GITHUB_PAT`, `CLICKUP_WEBHOOK_SECRET`. The installer
+prints the exact `curl` command that creates the webhook (which returns the
+secret).
+
+## Guardrails
+
+Comments only (never status/assignee changes), PRs only against your chosen
+base from `<prefix>/<slug>` branches, never merges,
+`--dangerously-skip-permissions` only in the disposable CI runner, `DRY_RUN=1`
+local testing, full transcript artifacts per run.
+
+## Beta → stable checklist (live-fire against a real workspace)
+
+- [ ] Webhook creation + X-Signature verification through the relay
+- [ ] analyze → respond → implement round-trip on a test task
+- [ ] Status-name matching against a custom status set
+- [ ] Reconcile run over both watched statuses (client-side filter)
+- [ ] Webhook health recovery after a failed delivery burst

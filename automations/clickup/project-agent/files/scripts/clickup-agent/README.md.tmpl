@@ -1,0 +1,47 @@
+# {{AGENT_NAME}} — ClickUp Project Agent (operations)
+
+Watches ClickUp list `{{CLICKUP_LIST_ID}}` and reacts to task activity.
+Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+ClickUp webhook (HMAC-SHA256 verified via X-Signature)
+  → Cloudflare Worker relay            scripts/clickup-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/clickup-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one ClickUp comment) |
+|---|---|---|
+| Task enters **{{STATUS_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{STATUS_ANALYZE}} task | `respond` | Answer / updated proposal / remaining questions |
+| Task enters **{{STATUS_IMPLEMENT}}** (or comment there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `clickup-agent-state` (`state/<card_id>.json`:
+list_id, phase, last_comment_date, branch, pr_url). Every run re-fetches truth
+from ClickUp's API and diffs against it — webhook payloads are only
+doorbells. Agent comments are prefixed `{{AGENT_MARKER}} — `; the resolver and
+relay both skip marker comments (loop protection). Comment recency is tracked
+by the comment `date` field (ms epoch).
+
+## Operating
+
+- **Recover / backfill:** Actions → *ClickUp Project Agent* → *Run workflow* — empty `item_id` reconciles both watched statuses + tracked tasks; a task id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/clickup-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** `api.sh DELETE "/webhook/<webhook_id>"` (list them: `api.sh GET "/team/{{CLICKUP_TEAM_ID}}/webhook"` — also shows webhook health).
+- **Known blind spot:** moving a task back into a watched status silently — re-trigger with a comment or a manual run.
+
+## Local dry-run (safe — needs CLICKUP_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/clickup-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<task_id> bash scripts/clickup-agent/agent-run.sh
+```
+
+## Guardrails
+
+- ClickUp writes are **comments only** — the agent never changes statuses, assignees, or anything else; humans own the board.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<kebab-slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
