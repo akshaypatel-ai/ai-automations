@@ -1,0 +1,10 @@
+{
+  "name": "Airtable Project Agent",
+  "description": "Watches an Airtable table: analyzes records entering your analyze status option, discusses in record comments, and implements records moved to your build option as ready-for-review PRs. Airtable's thin-ping webhooks collapse into doorbell reconciles at the relay.",
+  "tool": "airtable",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["records"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

@@ -1,0 +1,55 @@
+# {{AGENT_NAME}} — Airtable Project Agent (operations)
+
+Watches table `{{AIRTABLE_TABLE_ID}}` in base `{{AIRTABLE_BASE_ID}}` and
+reacts to record activity. Event-driven — no cron, no servers to maintain.
+Installed by [ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Airtable webhook ping (HMAC-SHA256 verified via X-Airtable-Content-MAC)
+  → Cloudflare Worker relay            scripts/airtable-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/airtable-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one record comment) |
+|---|---|---|
+| Record enters **{{STATUS_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{STATUS_ANALYZE}} record | `respond` | Answer / updated proposal / remaining questions |
+| Record enters **{{STATUS_IMPLEMENT}}** (or comment there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+Airtable's webhook notifications are thin pings (`{base, webhook, timestamp}`,
+no change details — details would need the payloads-cursor API). The doorbell
+pattern collapses that two-step protocol into a ping: every verified ping
+dispatches a reconcile run, and the scan (`filterByFormula` over both watched
+options + tracked records) finds whatever changed — no cursor bookkeeping.
+State lives on the orphan branch `airtable-agent-state`
+(`state/<record_id>.json`: status_name, phase, last_comment_at, branch,
+pr_url). Every run re-fetches truth from Airtable's API and diffs against it.
+Agent comments are prefixed `{{AGENT_MARKER}} — `; the resolver skips marker
+comments (loop protection). Comment recency is tracked by `createdTime`
+(ISO-8601, string compare). `{{STATUS_FIELD}}` may be a single select (plain
+string) or a status-type field (object with a name) — both are handled;
+option matching is case-insensitive.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Airtable Project Agent* → *Run workflow* — empty `item_id` reconciles both watched options + tracked records; a record id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/airtable-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Webhook expiry:** Airtable webhooks expire after **7 days** unless refreshed. Every agent run best-effort refreshes the webhook in `AIRTABLE_WEBHOOK_ID` (env.sh), so an active board keeps itself alive — but after 7+ quiet days the webhook lapses silently. Refresh it (`api.sh POST "/bases/{{AIRTABLE_BASE_ID}}/webhooks/<webhook_id>/refresh"`) or recreate it; list them with `api.sh GET "/bases/{{AIRTABLE_BASE_ID}}/webhooks"`.
+- **Pause:** `api.sh DELETE "/bases/{{AIRTABLE_BASE_ID}}/webhooks/<webhook_id>"` (recreate to resume — new MAC secret, new id).
+- **Known blind spot:** a dormant repo — no agent runs for 7+ days — wakes up deaf (expired webhook); poke it per the webhook-expiry bullet, then trigger a manual reconcile run.
+
+## Local dry-run (safe — needs AIRTABLE_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/airtable-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<record_id> bash scripts/airtable-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Airtable writes are **comments only** — the agent never changes the status field, any other field, or anything else; humans own the board.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<kebab-slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

@@ -1,0 +1,13 @@
+name = "{{WORKER_NAME}}"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (set with `wrangler secret put`):
+#   GITHUB_PAT           fine-grained PAT scoped to {{GITHUB_REPO}} only, contents: read+write
+#   AIRTABLE_MAC_SECRET  the macSecretBase64 returned when the webhook is created
+#                        (paste the base64 string as-is — the worker decodes it)
+
+[vars]
+GITHUB_REPO = "{{GITHUB_REPO}}"
+ENABLED_HANDLERS = "{{HANDLERS}}"
+WATCHED_BASE = "{{AIRTABLE_BASE_ID}}"

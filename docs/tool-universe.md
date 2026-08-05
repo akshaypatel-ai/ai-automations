@@ -18,7 +18,7 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 | Height | Yes | API-first, Linear-like |
 | Todoist | Yes | Personal/small-team tasks |
 | Wrike, Teamwork, Zoho Projects | Yes | Enterprise long tail |
-| ✦ Airtable | Yes | Bases as boards; strong automation audience |
+| ✅ Airtable | Yes (thin-ping webhooks, MAC) | **Built**: [`airtable/project-agent`](../automations/airtable/project-agent) |
 | Azure DevOps (Boards) | Yes (service hooks) | Enterprise; pairs with Pipelines runtime |
 
 ## Chat & messaging (triage/notify patterns)
