@@ -1,0 +1,81 @@
+name: Slack Triage Agent
+
+# Event-driven only (no cron): Slack Events API → Cloudflare Worker relay
+# (acks in <3s, dispatches async) → repository_dispatch → this workflow.
+# workflow_dispatch is the manual re-check button.
+on:
+  repository_dispatch:
+    types: [ slack_event ]
+  workflow_dispatch:
+    inputs:
+      item_id:
+        description: 'Thread as <channel>:<root_ts> (e.g. C0123:1712345678.000100); empty = re-check tracked threads'
+        required: false
+        default: ''
+      kind:
+        description: 'Kind (mention | channel | reaction | dm)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: slack-agent-${{ github.event.client_payload.item_id || inputs.item_id || 'reconcile' }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.AGENT_GH_PAT || secrets.GITHUB_TOKEN }}
+      # Auth for the AI brain: set ONE of these secrets (API key wins if both).
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AGENT_GH_PAT || github.token }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check Slack auth
+        run: |
+          [ -n "$SLACK_BOT_TOKEN" ] || { echo "::error::Set repo secret SLACK_BOT_TOKEN (xoxb-… from the Slack app's OAuth page)."; exit 1; }
+          bash scripts/slack-agent/api.sh auth.test | jq -e '.user_id' >/dev/null
+          echo "Slack auth OK"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run agent
+        env:
+          ITEM_ID: ${{ github.event.client_payload.item_id || inputs.item_id }}
+          EVENT_KIND: ${{ github.event.client_payload.kind || inputs.kind }}
+        run: |
+          ANTHROPIC_API_KEY="$(printf '%s' "${ANTHROPIC_API_KEY:-}" | tr -d '[:space:]')"
+          CLAUDE_CODE_OAUTH_TOKEN="$(printf '%s' "${CLAUDE_CODE_OAUTH_TOKEN:-}" | tr -d '[:space:]')"
+          [ -z "$ANTHROPIC_API_KEY" ] && unset ANTHROPIC_API_KEY
+          [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && unset CLAUDE_CODE_OAUTH_TOKEN
+          if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::Set repo secret CLAUDE_CODE_OAUTH_TOKEN (subscription) or ANTHROPIC_API_KEY (API billing)."
+            exit 1
+          fi
+          bash scripts/slack-agent/agent-run.sh
+
+      - name: Upload agent output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-output-${{ github.run_id }}
+          path: .agent-out/
+          if-no-files-found: ignore

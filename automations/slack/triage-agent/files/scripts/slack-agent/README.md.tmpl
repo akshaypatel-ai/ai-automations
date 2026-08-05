@@ -1,0 +1,48 @@
+# {{AGENT_NAME}} — Slack Triage Agent (operations)
+
+Answers @mentions and DMs grounded in this repository; triages the designated
+channels ({{WATCHED_CHANNELS}}); the `:{{TRIGGER_EMOJI}}:` emoji summons it
+onto any message. Event-driven — no cron, no servers. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Slack Events API (signed; relay acks <3s, dispatches async)
+  → Cloudflare Worker relay            scripts/slack-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/slack-agent.yml
+  → agent-run.sh                       restore state → resolve thread → playbook → save state
+```
+
+| Trigger | Playbook | Output |
+|---|---|---|
+| @mention anywhere the bot is | `mention` | ONE threaded, grounded answer |
+| New message in a watched channel | `triage` | Answer / GitHub issue + link / silence |
+| `:{{TRIGGER_EMOJI}}:` reaction on a message | `triage` | Same, explicitly summoned |
+| DM to the bot | `dm` | ONE conversational answer |
+
+Enabled handlers: **{{HANDLERS}}**. State lives on the orphan branch
+`slack-agent-state` (`state/<channel>-<root_ts>.json`: kind, phase, last_ts,
+issue_url). Every run re-fetches the thread and diffs against `last_ts` —
+webhook payloads are only doorbells. Loop protection is structural: the bot's
+own user id (from `auth.test`) and any `bot_id` messages are never input.
+
+## Operating
+
+- **Re-check a thread:** Actions → *Slack Triage Agent* → *Run workflow* with `item_id` = `<channel>:<root_ts>`; empty re-checks every tracked thread.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/slack-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** disable Event Subscriptions in the Slack app config (api.slack.com/apps).
+- **Channels/emoji:** `env.sh` **and** the relay's `wrangler.toml` must agree — easiest: re-run the installer, then redeploy the relay.
+
+## Local dry-run (safe — needs SLACK_BOT_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/slack-agent/agent-run.sh                          # tracked threads
+DRY_RUN=1 ITEM_ID="C0123:1712345678.000100" bash scripts/slack-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Slack writes are **threaded replies only** — never new channel messages, DMs to others, or @channel/@here. GitHub writes are **issues only** — this agent never writes code or opens PRs.
+- Channels are conversation: outside watched channels the agent only acts on explicit summons (mention, emoji, DM); chatter gets silence.
+- Deliveries are signature-verified (v0 HMAC + timestamp freshness) at the edge; `--dangerously-skip-permissions` only in the disposable CI runner.

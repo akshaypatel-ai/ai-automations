@@ -1,0 +1,13 @@
+name = "{{WORKER_NAME}}"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (set with `wrangler secret put`):
+#   GITHUB_PAT            fine-grained PAT scoped to {{GITHUB_REPO}} only, contents: read+write
+#   SLACK_SIGNING_SECRET  from the Slack app's Basic Information page
+
+[vars]
+GITHUB_REPO = "{{GITHUB_REPO}}"
+ENABLED_HANDLERS = "{{HANDLERS}}"
+WATCHED_CHANNELS = "{{WATCHED_CHANNELS}}"
+TRIGGER_EMOJI = "{{TRIGGER_EMOJI}}"
