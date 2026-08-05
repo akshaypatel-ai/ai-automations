@@ -1,0 +1,10 @@
+{
+  "name": "Asana Project Agent",
+  "description": "Watches an Asana project: analyzes tasks entering your analyze section, discusses in comments, and implements tasks moved to your build section as ready-for-review PRs. Relay handles Asana's handshake + HMAC and routes all webhook events; the tasks handler is fully implemented.",
+  "tool": "asana",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["tasks", "sections", "projects"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

@@ -1,0 +1,50 @@
+# {{AGENT_NAME}} — Asana Project Agent (operations)
+
+Watches Asana project `{{ASANA_PROJECT_GID}}` and reacts to task activity.
+Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Asana webhook (X-Hook-Secret handshake, then HMAC-SHA256 via X-Hook-Signature)
+  → Cloudflare Worker relay            scripts/asana-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/asana-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one Asana comment) |
+|---|---|---|
+| Task enters **{{SECTION_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{SECTION_ANALYZE}} task | `respond` | Answer / updated proposal / remaining questions |
+| Task enters **{{SECTION_IMPLEMENT}}** (or comment there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `asana-agent-state` (`state/<task_gid>.json`:
+section_name, phase, last_comment_at, branch, pr_url). Asana events carry no
+content at all (gid + action only), so every run re-fetches truth from the
+API and diffs against saved state — here the doorbell pattern isn't just
+resilience, it's the only way to work. Agent comments are prefixed
+`{{AGENT_MARKER}} — `; the resolver skips marker comments (loop protection;
+the agent's own comment does echo back as one harmless no-op run). Comment
+recency is tracked by story `created_at` (ISO-8601).
+
+## Operating
+
+- **Recover / backfill:** Actions → *Asana Project Agent* → *Run workflow* — empty `item_id` reconciles both watched sections + tracked tasks; a task gid processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/asana-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** `api.sh DELETE "/webhooks/<webhook_gid>"` (list them: `api.sh GET "/webhooks?workspace=<workspace_gid>&resource={{ASANA_PROJECT_GID}}"`).
+- **Webhook expiry:** Asana deactivates webhooks whose target keeps failing; recreate with the same two-terminal handshake flow from the install notes.
+- **Known blind spot:** moving a task back into a watched section after the agent processed it there needs a new comment or manual run to re-trigger.
+
+## Local dry-run (safe — needs ASANA_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/asana-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<task_gid> bash scripts/asana-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Asana writes are **comments only** — the agent never moves tasks, never assigns, never completes; humans own the board.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<kebab-slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
