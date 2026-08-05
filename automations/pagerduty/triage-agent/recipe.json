@@ -1,0 +1,10 @@
+{
+  "name": "PagerDuty Triage Agent",
+  "description": "Turns PagerDuty pages into grounded triage notes posted on the incident itself: fetches the incident + its alerts, reads the repo at the implicated code, and posts ONE note (what happened, impact, likely cause, where to look) — never acknowledging, resolving, or assigning anything. Signed v3-webhook relay; the incidents handler is fully implemented.",
+  "tool": "pagerduty",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["incidents"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

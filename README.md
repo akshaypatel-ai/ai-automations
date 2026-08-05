@@ -37,11 +37,12 @@ board — via toggleable per-event handlers you pick at install time.
 | [`gitlab/issues-agent`](automations/gitlab/issues-agent) | GitLab Issues | Label-driven board flow (labels are GitLab's native columns); X-Gitlab-Token relay routes issue + note events. | 🧪 Beta |
 | [`confluence/docs-agent`](automations/confluence/docs-agent) | Confluence | Label a page → spec-vs-code review comment grounded in the repo; Automation-rule doorbells (or the manual button). | 🧪 Beta |
 | [`figma/design-agent`](automations/figma/design-agent) | Figma | Comment `@ai …` on a design → repo-grounded answer in the thread (is it built? what does the code do?); passcode-verified webhooks. | 🧪 Beta |
+| [`pagerduty/triage-agent`](automations/pagerduty/triage-agent) | PagerDuty | Incident fires → repo-grounded triage note on the incident (what/impact/likely cause/where to look); v3 signed webhooks. | 🧪 Beta |
 | [`zendesk/triage-agent`](automations/zendesk/triage-agent) | Zendesk | Ticket triage: grounded draft replies as internal notes (humans send), bugs escalated as GitHub issues. | 🧪 Beta |
 | [`intercom/triage-agent`](automations/intercom/triage-agent) | Intercom | Conversation triage: grounded draft replies as internal notes, bugs escalated as GitHub issues. | 🧪 Beta |
 | [`sentry/triage-agent`](automations/sentry/triage-agent) | Sentry | Error alerts become root-cause sketches filed as GitHub issues; recurrences update the same issue. | 🧪 Beta |
 
-**Statuses**: ✅ production-proven pattern · 🧪 built and smoke-tested, needs live-fire testing against the real service (each recipe README carries its checklist). Beyond these twenty-one, [docs/tool-universe.md](docs/tool-universe.md) maps 20+ more candidate tools (PagerDuty, Azure DevOps, …) with their webhook capabilities.
+**Statuses**: ✅ production-proven pattern · 🧪 built and smoke-tested, needs live-fire testing against the real service (each recipe README carries its checklist). Beyond these twenty-two, [docs/tool-universe.md](docs/tool-universe.md) maps 20+ more candidate tools (Azure DevOps, …) with their webhook capabilities.
 
 Want a recipe sooner — or a tool that isn't listed? [Open an issue](../../issues) or contribute it: the recipe contract in [CONTRIBUTING.md](CONTRIBUTING.md) makes new recipes straightforward.
 

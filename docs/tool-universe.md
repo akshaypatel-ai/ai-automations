@@ -56,7 +56,8 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 | Tool | Trigger | Notes |
 |---|---|---|
 | ✅ Sentry | Yes (internal-integration webhooks) | **Built**: [`sentry/triage-agent`](../automations/sentry/triage-agent) |
-| PagerDuty / Opsgenie | Yes | Incident summaries to chat |
+| ✅ PagerDuty | Yes (v3 webhooks, signed) | **Built**: [`pagerduty/triage-agent`](../automations/pagerduty/triage-agent) |
+| Opsgenie | Yes | Incident summaries to chat |
 | CircleCI / Buildkite / Jenkins | Yes | Failure triage: AI reads the log, comments the likely cause |
 | Vercel / Netlify / Railway | Yes (deploy hooks) | Deploy notes to chat |
 

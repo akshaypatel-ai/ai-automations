@@ -1,0 +1,51 @@
+# {{AGENT_NAME}} — PagerDuty Triage Agent (operations)
+
+Watches PagerDuty and posts a repo-grounded triage note on every fresh
+incident. Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+PagerDuty v3 webhook (X-PagerDuty-Signature verified — any v1= entry may match)
+  → Cloudflare Worker relay            scripts/pagerduty-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/pagerduty-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (a note on the incident — nothing else) |
+|---|---|---|
+| `incident.triggered` / `incident.reopened` / `incident.escalated` on an un-noted incident | `analyze` | ONE note: what happened, impact, likely cause (code-verified), where to look |
+
+State lives on the orphan branch `pagerduty-agent-state`
+(`state/<incident_id>.json`: phase, updated_at). Every run re-fetches truth
+from PagerDuty's API and diffs against it — webhook payloads are only
+doorbells. Dedupe is phase-based: once an incident is `noted`, every further
+delivery (duplicate webhooks, retriggers, reopens) skips with "already noted" —
+one incident, one note, ever. The agent's own notes echo back as
+`incident.annotated` events; the relay drops those at the edge, so the agent
+can never wake itself. Notes are attributed to `PAGERDUTY_FROM_EMAIL` (the
+REST API's `From:` header, added by `note.sh`) and open with the
+`{{AGENT_MARKER}}` marker. Resolved incidents are skipped — that response is
+finished.
+
+## Operating
+
+- **Recover / backfill:** Actions → *PagerDuty Triage Agent* → *Run workflow* — empty `item_id` reconciles the 25 most recently created triggered/acknowledged incidents + tracked ones; an incident id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/pagerduty-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** delete or disable the webhook subscription (Integrations → Generic Webhooks (v3)) — the relay can stay deployed. Re-creating the subscription mints a NEW signing secret; update the worker secret when you do.
+
+## Local dry-run (safe — needs PAGERDUTY_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/pagerduty-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<incident_id> bash scripts/pagerduty-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Notes ONLY: the agent never acknowledges, resolves, assigns, escalates, or snoozes — responders own the incident end to end.
+- ONE note per incident, ever — state marks it `noted` and every retrigger skips; the annotated echo is dropped at the edge.
+- No PII from alert payloads: user emails, tokens, and request bodies are described, never pasted.
+- Never writes code — git stays clean apart from the state branch.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
