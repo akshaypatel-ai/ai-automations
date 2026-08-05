@@ -1,0 +1,10 @@
+{
+  "name": "Miro Board Agent",
+  "description": "Sticky-note summon on a Miro board: write a sticky starting with a trigger (default @ai) and the agent answers from the repo — is it built, what does the code do, how hard is the change — as ONE reply sticky placed right beside the question. Experimental board-subscription webhooks, URL-secret relay.",
+  "tool": "miro",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["stickies"],
+  "requires": ["git", "jq", "gh", "curl"]
+}

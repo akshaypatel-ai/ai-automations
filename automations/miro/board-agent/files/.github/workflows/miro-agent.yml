@@ -1,0 +1,81 @@
+name: Miro Board Agent
+
+# Everything arrives via the URL-secret Miro webhook relay as
+# repository_dispatch; workflow_dispatch is the manual test button.
+on:
+  repository_dispatch:
+    types: [ miro_event ]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'ask (manual test)'
+        required: true
+        default: 'ask'
+      text:
+        description: 'Question to answer (what would follow the trigger prefix)'
+        required: true
+      item_id:
+        description: 'Item id of the question sticky (optional — blank places the reply near the board origin)'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: miro-agent-${{ github.event_name }}-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      MIRO_TOKEN: ${{ secrets.MIRO_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run agent
+        env:
+          ASK_TEXT: ${{ github.event.client_payload.text || inputs.text }}
+          ITEM_ID: ${{ github.event.client_payload.item_id || inputs.item_id }}
+        run: |
+          source scripts/miro-agent/env.sh
+          bash scripts/miro-agent/api.sh GET "/v2/boards/$MIRO_BOARD_ID" | jq -e '.id' >/dev/null \
+            || { echo "::error::MIRO_TOKEN missing or invalid — Miro → Settings → Your apps → app access token with boards:read + boards:write, installed to the board's team."; exit 1; }
+          ANTHROPIC_API_KEY="$(printf '%s' "${ANTHROPIC_API_KEY:-}" | tr -d '[:space:]')"
+          CLAUDE_CODE_OAUTH_TOKEN="$(printf '%s' "${CLAUDE_CODE_OAUTH_TOKEN:-}" | tr -d '[:space:]')"
+          [ -z "$ANTHROPIC_API_KEY" ] && unset ANTHROPIC_API_KEY
+          [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && unset CLAUDE_CODE_OAUTH_TOKEN
+          if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::Set repo secret CLAUDE_CODE_OAUTH_TOKEN (subscription) or ANTHROPIC_API_KEY (API billing)."
+            exit 1
+          fi
+          case "${{ github.event_name }}" in
+            repository_dispatch) MODE=ask ;;
+            workflow_dispatch)   MODE="${{ inputs.mode }}" ;;
+          esac
+          export MODE
+          bash scripts/miro-agent/agent-run.sh
+
+      - name: Upload agent output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-output-${{ github.run_id }}
+          path: .agent-out/
+          if-no-files-found: ignore

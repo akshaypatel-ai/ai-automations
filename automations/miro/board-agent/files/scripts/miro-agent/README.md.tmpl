@@ -1,0 +1,50 @@
+# {{AGENT_NAME}} — Miro Board Agent (operations)
+
+Repo-grounded Q&A for {{PROJECT_NAME}} via sticky notes on a Miro board.
+Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+sticky "{{TRIGGER}} …" on the board → board-subscription webhook (experimental)
+  → Cloudflare relay (URL secret + trigger gate) → repository_dispatch → GitHub Actions
+  → headless Claude Code reads the repo → reply.sh (ONE sticky beside the question)
+```
+
+| Handler | Trigger | Output (one reply sticky) |
+|---|---|---|
+| stickies | Sticky note starting with `{{TRIGGER}}` (URL-secret webhook → relay) | Repo-grounded answer sticky placed right beside the question; silence for everything else |
+
+Enabled: **{{HANDLERS}}**. Board: `{{MIRO_BOARD_ID}}` (the id after
+`/app/board/` in the URL — opaque base64, trailing `=` included). Stateless —
+each summon is one Q&A round-trip; there's no state branch. The reply sticky
+lands 260px to the right of the question, starts with the marker, and is
+capped at 1800 chars (stickies are small — brevity is the feature).
+
+## Operating
+
+- **Manual test:** Actions → *Miro Board Agent* → *Run workflow* → a question (+ optionally the question sticky's item id; blank places the reply near the board origin and the prompt shows "(origin sticky unavailable)").
+- **Transcripts:** every run uploads `.agent-out/` (prompt with gathered sticky context, AI transcript) as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/miro-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** disable the workflow in the Actions UI, or delete the subscription:
+  `curl -X DELETE -H "Authorization: Bearer <MIRO_TOKEN>" https://api.miro.com/v2-experimental/webhooks/subscriptions/<subscription_id>`
+  (list them via `GET https://api.miro.com/v2-experimental/webhooks/subscriptions`).
+- **Trigger prefix / board scope:** `TRIGGER` and `MIRO_BOARD_ID`/`WATCHED_BOARD` — change them in BOTH `scripts/miro-agent/env.sh` and `relay/wrangler.toml`, then `wrangler deploy` (the relay is where the gate actually runs).
+
+## Local dry-run (no AI, no reply)
+
+```bash
+# export MIRO_TOKEN first for live sticky content; without it the prompt
+# still assembles with "(origin sticky unavailable)".
+DRY_RUN=1 MODE=ask ASK_TEXT="is the new checkout built?" ITEM_ID=<sticky-item-id> \
+  bash scripts/miro-agent/agent-run.sh
+```
+
+## Guardrails
+
+- ONE reply sticky per summon, placed beside the question; that sticky is the only write surface — the agent never edits, moves, or deletes anything else on the board, and never writes code.
+- Trigger-prefix summons (case-insensitive): stickies not starting with `{{TRIGGER}}` are dropped at the relay — a busy board never wakes CI. There is no board-comments API in Miro's REST v2, so the sticky summon IS the honest shape — not a workaround for a missing comment thread.
+- URL-secret verification, honestly: the experimental board subscriptions carry no delivery signature — the secret in the callback path is the whole credential. Keep `WEBHOOK_SECRET` long and random; wrong paths 404 at the edge.
+- Echo-proof: the reply sticky comes back through the webhook like any other item event — the `{{AGENT_MARKER}}` marker (and the absent trigger) drops it at the relay. Updates are forwarded on purpose: the trigger usually arrives when someone types into a fresh sticky, and re-editing a question SHOULD re-summon.
+- Answers state only what was verified in the repo — "I couldn't find that in the repo" over guessing.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

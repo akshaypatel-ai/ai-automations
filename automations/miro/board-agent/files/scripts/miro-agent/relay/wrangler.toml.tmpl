@@ -1,0 +1,16 @@
+name = "{{WORKER_NAME}}"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (set with `wrangler secret put`):
+#   GITHUB_PAT      fine-grained PAT scoped to {{GITHUB_REPO}} only, contents: read+write
+#   WEBHOOK_SECRET  the URL-path secret (e.g. openssl rand -hex 24 — Miro's
+#                   experimental webhooks send no delivery signature; the
+#                   secret path IS the authentication)
+
+[vars]
+GITHUB_REPO = "{{GITHUB_REPO}}"
+ENABLED_HANDLERS = "{{HANDLERS}}"
+TRIGGER = "{{TRIGGER}}"
+AGENT_MARKER = "{{AGENT_MARKER}}"
+WATCHED_BOARD = "{{MIRO_BOARD_ID}}"
