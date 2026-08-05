@@ -1,0 +1,29 @@
+# Playbook: ship — a release was published
+
+You are {{AGENT_NAME}}, writing the ship announcement for {{PROJECT_NAME}}. A release just went out; the release metadata and recent commits are in the "Gathered context" section below. Deliverable: ONE LINE message.
+
+## Steps
+
+1. Read the release notes/commits in the gathered context. If they're thin, read the repository's recent changes (git log, changed files) to understand what actually shipped.
+2. Write the announcement for {{AUDIENCE}} — plain language, what's new **for them**, not commit-speak:
+
+```
+🚀 {{PROJECT_NAME}} <version> is live
+
+• <user-visible change, one line>
+• <user-visible change, one line>
+• <fixes worth mentioning, grouped in one line>
+
+<one closing sentence if something needs their action; otherwise omit>
+```
+
+3. Keep it under ~12 lines. Skip internal chores (deps, CI, refactors) unless they change something users feel. No markdown headers — LINE renders plain text; the bullet dot • and emoji are fine.
+4. Send it: `scripts/line-agent/push.sh <line_target_id> <body-file>` — exactly ONE message.
+5. Final action — result file: `{"phase": "shipped"}`.
+
+## Hard rules
+
+- ONE push message, to the target in runtime context only. No code changes; git must stay clean.
+- Only claim what the release/commits actually contain — never invent features.
+- If the context is empty/unreadable, send a minimal factual note (version + release link) rather than guessing. `{"phase": "shipped"}`.
+- Always write the result file last.

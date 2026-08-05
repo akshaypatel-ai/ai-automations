@@ -1,0 +1,38 @@
+# {{AGENT_NAME}} — LINE Notify Agent (operations)
+
+AI-written notifications for {{PROJECT_NAME}} pushed to LINE target
+`{{LINE_TARGET_ID}}`. Stateless and mostly relay-free. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+| Handler | Trigger | Output (one LINE message) |
+|---|---|---|
+| ship | GitHub release published (native trigger, no relay) | Plain-language release announcement |
+| incident | Monitored workflow ({{INCIDENT_WORKFLOWS}}) fails (native trigger) | What broke / impact / likely cause / link |
+| ask | Group message via signed LINE webhook → relay | Grounded answer from the repo (or silence for chatter) |
+
+Enabled: **{{HANDLERS}}**. No state branch — notifications are one-shot; the
+doorbell/diff machinery isn't needed here.
+
+## Operating
+
+- **Manual test:** Actions → *LINE Notify Agent* → *Run workflow* → mode `ship`/`incident`/`ask`.
+- **Transcripts:** every run uploads `.agent-out/` (prompt with gathered context, AI transcript) as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/line-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause ship/incident:** disable the workflow in the Actions UI. **Pause ask:** turn off "Use webhook" in LINE Developers.
+- **Message quota:** LINE's free plan caps push messages per month — keep the incident watch list tight.
+
+## Local dry-run (no AI, no push)
+
+```bash
+DRY_RUN=1 MODE=ship RELEASE_TAG=v1.2.3 bash scripts/line-agent/agent-run.sh
+DRY_RUN=1 MODE=incident WF_NAME=CI WF_URL=http://example bash scripts/line-agent/agent-run.sh
+DRY_RUN=1 MODE=ask ASK_TEXT="does the app support X?" bash scripts/line-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Pushes only to the configured target — never broadcast, never other groups.
+- ONE message per event; playbooks never invent features or speculate on root causes beyond the log + code actually read.
+- `ask` never writes code — build requests are redirected to the team's board.
+- The `ask` webhook is signature-verified (x-line-signature) at the edge.
