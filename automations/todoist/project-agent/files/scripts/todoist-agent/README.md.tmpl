@@ -1,0 +1,51 @@
+# {{AGENT_NAME}} — Todoist Project Agent (operations)
+
+Watches Todoist project `{{TODOIST_PROJECT_ID}}` and reacts to task activity.
+Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Todoist app webhook (X-Todoist-Hmac-SHA256: base64 HMAC over the raw body)
+  → Cloudflare Worker relay            scripts/todoist-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/todoist-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one Todoist comment) |
+|---|---|---|
+| Task moves into **{{SECTION_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{SECTION_ANALYZE}} task | `respond` | Answer / updated proposal / remaining questions |
+| Task moves into **{{SECTION_IMPLEMENT}}** (or comment there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `todoist-agent-state` (`state/<task_id>.json`:
+section_name, phase, last_comment_at, branch, pr_url). Webhook payloads are
+doorbells only — every run re-fetches truth from the REST v2 API and diffs
+against saved state. The board columns are sections: the task carries only a
+`section_id`, so the resolver maps it to a name via the project's section list
+(case-insensitive); tasks with no section (plain list view) skip cleanly.
+Agent comments are prefixed `{{AGENT_MARKER}} — `; the relay drops the agent's
+own note echo by marker at the edge, and the resolver skips marker comments as
+a second line of defense. Comment recency is tracked by `posted_at` (ISO-8601).
+
+## Operating
+
+- **Recover / backfill:** Actions → *Todoist Project Agent* → *Run workflow* — empty `item_id` reconciles both watched sections + tracked tasks (REST v2 has no tasks-by-section endpoint: the scan resolves section names → ids, then filters the project's tasks client-side); a task id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/todoist-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** clear the webhook URL (or delete the app) in the App Management console (developer.todoist.com/appconsole.html); restoring it later reuses the same relay.
+- **Webhooks silent?** Todoist app webhooks only fire for accounts that authorized the app — complete the app's OAuth flow once with your own account to switch deliveries on.
+- **Known blind spot:** moving a task back into a watched section after the agent processed it there needs a new comment or manual run to re-trigger.
+
+## Local dry-run (safe — needs TODOIST_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/todoist-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<task_id> bash scripts/todoist-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Todoist writes are **comments only** — the agent never moves tasks between sections, never completes, never reschedules; humans own the board.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<kebab-slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

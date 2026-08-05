@@ -16,7 +16,7 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 | ✅ GitLab Issues | Yes (project webhooks, X-Gitlab-Token) | **Built**: [`gitlab/issues-agent`](../automations/gitlab/issues-agent) |
 | ✅ Shortcut | Yes (Payload-Signature HMAC) | **Built**: [`shortcut/project-agent`](../automations/shortcut/project-agent) |
 | Height | Yes | API-first, Linear-like |
-| Todoist | Yes | Personal/small-team tasks |
+| ✅ Todoist | Yes (app webhooks, base64 HMAC) | **Built**: [`todoist/project-agent`](../automations/todoist/project-agent) |
 | Wrike, Teamwork, Zoho Projects | Yes | Enterprise long tail |
 | ✅ Airtable | Yes (thin-ping webhooks, MAC) | **Built**: [`airtable/project-agent`](../automations/airtable/project-agent) |
 | Azure DevOps (Boards) | Yes (service hooks) | Enterprise; pairs with Pipelines runtime |

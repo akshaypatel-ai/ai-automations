@@ -1,0 +1,10 @@
+{
+  "name": "Todoist Project Agent",
+  "description": "Watches a Todoist project's board: analyzes tasks moved into your analyze section, discusses in comments, and implements tasks moved to your build section as ready-for-review PRs. Relay verifies the app webhook's base64 HMAC and routes all event families; the tasks handler is fully implemented.",
+  "tool": "todoist",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["tasks", "projects", "sections"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

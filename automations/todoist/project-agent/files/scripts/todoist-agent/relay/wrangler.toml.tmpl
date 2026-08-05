@@ -1,0 +1,13 @@
+name = "{{WORKER_NAME}}"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (set with `wrangler secret put`):
+#   GITHUB_PAT             fine-grained PAT scoped to {{GITHUB_REPO}} only, contents: read+write
+#   TODOIST_CLIENT_SECRET  the app's Client Secret from the App Management console
+
+[vars]
+GITHUB_REPO = "{{GITHUB_REPO}}"
+ENABLED_HANDLERS = "{{HANDLERS}}"
+WATCHED_PROJECT = "{{TODOIST_PROJECT_ID}}"
+AGENT_MARKER = "{{AGENT_MARKER}}"
