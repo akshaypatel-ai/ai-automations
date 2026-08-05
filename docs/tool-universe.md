@@ -61,7 +61,8 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 | ✅ PagerDuty | Yes (v3 webhooks, signed) | **Built**: [`pagerduty/triage-agent`](../automations/pagerduty/triage-agent) |
 | Opsgenie | Yes | Incident summaries to chat |
 | CircleCI / Buildkite / Jenkins | Yes | Failure triage: AI reads the log, comments the likely cause |
-| Vercel / Netlify / Railway | Yes (deploy hooks) | Deploy notes to chat |
+| ✅ Vercel | Yes (x-vercel-signature HMAC) | **Built**: [`vercel/deploy-agent`](../automations/vercel/deploy-agent) |
+| Netlify / Railway | Yes (deploy hooks) | Deploy notes to chat |
 
 ## How to add one
 

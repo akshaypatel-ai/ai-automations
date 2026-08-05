@@ -1,0 +1,14 @@
+name = "{{WORKER_NAME}}"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (set with `wrangler secret put`):
+#   GITHUB_PAT             fine-grained PAT scoped to {{GITHUB_REPO}} only, contents: read+write
+#   VERCEL_WEBHOOK_SECRET  shown exactly once when the webhook is created — store it immediately
+
+[vars]
+GITHUB_REPO = "{{GITHUB_REPO}}"
+ENABLED_HANDLERS = "{{HANDLERS}}"
+# Optional: a Vercel project id — deliveries for other projects are dropped at
+# the edge. Empty forwards every project the webhook is scoped to.
+WATCHED_PROJECT = "{{VERCEL_PROJECT_ID}}"

@@ -1,0 +1,52 @@
+# {{AGENT_NAME}} — Vercel Deploy Agent (operations)
+
+Watches Vercel deployments of this repo and turns failed builds into grounded
+GitHub triage issues. Event-driven — no cron, no servers to maintain.
+Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Vercel deployment.error webhook (hex HMAC-SHA1 verified via x-vercel-signature)
+  → Cloudflare Worker relay            scripts/vercel-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/vercel-agent.yml
+  → agent-run.sh                       restore state → resolve → build-log tail → playbook → save state
+```
+
+| Trigger | Playbook | Output (GitHub only — Vercel is never written) |
+|---|---|---|
+| A deployment ends in ERROR | `analyze` | ONE GitHub issue labeled `{{ISSUE_LABEL}}`: what failed, log excerpt, likely cause (code-verified), where to look, links — or ONE comment when the same commit sha already has an open issue |
+
+State lives on the orphan branch `vercel-agent-state`
+(`state/<deployment_id>.json`: phase, gh_issue_url, commit_sha). Every run
+re-fetches truth from Vercel's API and diffs against it — webhook payloads are
+only doorbells. Dedupe is **sha-search based**, not state-keyed: state only
+prevents reprocessing the same deployment (retriggers, duplicate deliveries);
+a NEW deployment of an already-failed commit is caught by the playbook
+searching open `{{ISSUE_LABEL}}` issues for the commit sha and commenting
+instead of filing. The build log's tail (~8000 chars) is fetched up front and
+inlined into the prompt, so triage works even when the failure predates the
+run. Issue bodies and comments end with the `{{AGENT_MARKER}}` footer.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Vercel Deploy Agent* → *Run workflow* — empty `item_id` reconciles the 10 most recent failed deployments (`state=ERROR`, scoped to the configured project when set) + tracked ones; a deployment id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact (prompt, build-log context, stream).
+- **Model:** `CLAUDE_MODEL` in `scripts/vercel-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** delete (or disable) the webhook in Vercel Team/Account Settings → Webhooks — the relay can stay deployed; recreating the webhook mints a new secret (`wrangler secret put VERCEL_WEBHOOK_SECRET` again).
+- **Known blind spot:** deployments that fail while the webhook is down are only caught by the reconcile button — it scans the last 10 failed deployments.
+
+## Local dry-run (safe — needs VERCEL_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/vercel-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<deployment_id> bash scripts/vercel-agent/agent-run.sh
+```
+
+## Guardrails
+
+- ONE GitHub issue per failing commit sha — new failed deployments of the same commit become comments on it; closed issues are left closed.
+- Vercel access is READ-ONLY — the agent never retries, cancels, redeploys, or promotes a deployment; humans own the deploy pipeline.
+- No secrets from build logs: env values, tokens, and connection strings that leak into logs are scrubbed before anything reaches GitHub.
+- Never writes code — git stays clean apart from the state branch.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
