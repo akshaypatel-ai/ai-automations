@@ -1,0 +1,50 @@
+# {{AGENT_NAME}} — Monday Project Agent (operations)
+
+Watches monday.com board `{{MONDAY_BOARD_ID}}` and reacts to item activity.
+Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+monday.com webhook (URL-secret authenticated, challenge echoed at creation)
+  → Cloudflare Worker relay            scripts/monday-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/monday-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one monday.com update) |
+|---|---|---|
+| Item enters **{{STATUS_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human update on a {{STATUS_ANALYZE}} item | `respond` | Answer / updated proposal / remaining questions |
+| Item enters **{{STATUS_IMPLEMENT}}** (or update there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `monday-agent-state` (`state/<item_id>.json`:
+status_name, phase, last_comment_at, branch, pr_url). Every run re-fetches
+truth from monday.com's GraphQL API and diffs against it — webhook payloads
+are only doorbells. Agent updates are prefixed `{{AGENT_MARKER}} — `; the
+resolver and relay both skip marker updates (loop protection). Comment
+recency is tracked by update `created_at` (ISO-8601). Column edits on
+non-status columns are dropped at the edge.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Monday Project Agent* → *Run workflow* — empty `item_id` reconciles both watched statuses + tracked items; an item id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/monday-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** delete the webhooks — list ids with
+  `api.sh 'query { webhooks (board_id: {{MONDAY_BOARD_ID}}) { id event } }'`, then
+  `api.sh 'mutation ($id: ID!) { delete_webhook (id: $id) { id } }' '{"id": "<id>"}'`.
+- **Known blind spot:** moving an item back into a watched status silently — re-trigger with an update or a manual run.
+
+## Local dry-run (safe — needs MONDAY_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/monday-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<item_id> bash scripts/monday-agent/agent-run.sh
+```
+
+## Guardrails
+
+- monday.com writes are **updates only** — the agent never changes statuses, owners, or any column; humans own the board.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<kebab-slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

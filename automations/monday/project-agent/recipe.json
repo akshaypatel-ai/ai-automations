@@ -1,0 +1,10 @@
+{
+  "name": "Monday.com Project Agent",
+  "description": "Watches a monday.com board: analyzes items entering your analyze status, discusses in updates, and implements items moved to your build status as ready-for-review PRs. Challenge-echo relay routes all board webhook events; the items handler is fully implemented.",
+  "tool": "monday",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["items", "subitems"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}
