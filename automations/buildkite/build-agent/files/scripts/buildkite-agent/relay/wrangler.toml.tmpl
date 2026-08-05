@@ -1,0 +1,14 @@
+name = "{{WORKER_NAME}}"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (set with `wrangler secret put`):
+#   GITHUB_PAT                fine-grained PAT scoped to {{GITHUB_REPO}} only, contents: read+write
+#   BUILDKITE_WEBHOOK_SECRET  the Token the webhook notification service shows on its settings page
+
+[vars]
+GITHUB_REPO = "{{GITHUB_REPO}}"
+ENABLED_HANDLERS = "{{HANDLERS}}"
+# Optional: a pipeline slug — deliveries for other pipelines are dropped at
+# the edge. Empty forwards every pipeline the notification service covers.
+WATCHED_PIPELINE = "{{BUILDKITE_PIPELINE}}"

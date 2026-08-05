@@ -1,0 +1,10 @@
+{
+  "name": "Buildkite Build Agent",
+  "description": "Turns failed Buildkite builds into repo-grounded triage issues: fetches the build + the failing job's log, reads the repo at the implicated code, and files ONE GitHub issue (what failed, log excerpt, likely cause, where to look). New failures of the same commit become comments — never duplicates. Signed-webhook relay (timestamped HMAC, token-header fallback); the builds handler is fully implemented.",
+  "tool": "buildkite",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["builds"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

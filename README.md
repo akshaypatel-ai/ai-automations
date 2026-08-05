@@ -50,11 +50,12 @@ board — via toggleable per-event handlers you pick at install time.
 | [`azuredevops/project-agent`](automations/azuredevops/project-agent) | Azure DevOps | Board flow via work-item states (analyze → discuss → PR); service-hook webhooks, WIQL reconcile. | 🧪 Beta |
 | [`netlify/deploy-agent`](automations/netlify/deploy-agent) | Netlify | Failed deploys become repo-grounded triage issues (JWS-verified notifications); same-sha recurrences comment instead of duplicating. | 🧪 Beta |
 | [`rocketchat/notify-agent`](automations/rocketchat/notify-agent) | Rocket.Chat | AI-written ship/incident notifications (incoming webhook, no relay) + trigger-word Q&A via outgoing webhook. | 🧪 Beta |
+| [`buildkite/build-agent`](automations/buildkite/build-agent) | Buildkite | Failed builds become repo-grounded triage issues (ANSI-stripped log tail + likely cause); same-sha recurrences comment instead of duplicating. | 🧪 Beta |
 | [`zendesk/triage-agent`](automations/zendesk/triage-agent) | Zendesk | Ticket triage: grounded draft replies as internal notes (humans send), bugs escalated as GitHub issues. | 🧪 Beta |
 | [`intercom/triage-agent`](automations/intercom/triage-agent) | Intercom | Conversation triage: grounded draft replies as internal notes, bugs escalated as GitHub issues. | 🧪 Beta |
 | [`sentry/triage-agent`](automations/sentry/triage-agent) | Sentry | Error alerts become root-cause sketches filed as GitHub issues; recurrences update the same issue. | 🧪 Beta |
 
-**Statuses**: ✅ production-proven pattern · 🧪 built and smoke-tested, needs live-fire testing against the real service (each recipe README carries its checklist). Beyond these thirty-four, [docs/tool-universe.md](docs/tool-universe.md) maps 20+ more candidate tools (Height, Wrike, …) with their webhook capabilities.
+**Statuses**: ✅ production-proven pattern · 🧪 built and smoke-tested, needs live-fire testing against the real service (each recipe README carries its checklist). Beyond these thirty-five, [docs/tool-universe.md](docs/tool-universe.md) maps 20+ more candidate tools (Height, Wrike, …) with their webhook capabilities.
 
 Want a recipe sooner — or a tool that isn't listed? [Open an issue](../../issues) or contribute it: the recipe contract in [CONTRIBUTING.md](CONTRIBUTING.md) makes new recipes straightforward.
 

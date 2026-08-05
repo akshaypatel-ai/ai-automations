@@ -61,7 +61,8 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 | ✅ Sentry | Yes (internal-integration webhooks) | **Built**: [`sentry/triage-agent`](../automations/sentry/triage-agent) |
 | ✅ PagerDuty | Yes (v3 webhooks, signed) | **Built**: [`pagerduty/triage-agent`](../automations/pagerduty/triage-agent) |
 | Opsgenie | Yes | Incident summaries to chat |
-| CircleCI / Buildkite / Jenkins | Yes | Failure triage: AI reads the log, comments the likely cause |
+| ✅ Buildkite | Yes (timestamped HMAC or token header) | **Built**: [`buildkite/build-agent`](../automations/buildkite/build-agent) |
+| CircleCI / Jenkins | Yes | Failure triage: AI reads the log, comments the likely cause |
 | ✅ Vercel | Yes (x-vercel-signature HMAC) | **Built**: [`vercel/deploy-agent`](../automations/vercel/deploy-agent) |
 | ✅ Netlify | Yes (JWS-signed notifications) | **Built**: [`netlify/deploy-agent`](../automations/netlify/deploy-agent) |
 | Railway | Yes (deploy hooks) | Deploy notes to chat |
