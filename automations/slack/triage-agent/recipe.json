@@ -1,0 +1,10 @@
+{
+  "name": "Slack Triage Agent",
+  "description": "DESIGNED, NOT YET BUILT — Events API coverage (mentions, channel messages, reactions, DMs): answers FAQs from the repo, escalates real bugs as GitHub issues. See README.md for the implementation spec.",
+  "tool": "slack",
+  "status": "planned",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["mentions", "channel", "reactions", "dm"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

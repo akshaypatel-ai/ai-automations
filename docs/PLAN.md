@@ -188,6 +188,12 @@ Core wizard lib + `basecamp/project-agent` on **GitHub Actions + Claude Code** (
 Order: **Linear** (best API — validates that the project-agent core is truly reusable) → **Jira** → **Trello** → **ClickUp** → **Slack triage-agent** (new pattern) → **LINE notify**.
 *Done when: each recipe passes the same 15-minute stranger test.*
 
+Status: Linear is **built (beta — needs live-fire testing**; checklist in its
+README). Jira, Trello, ClickUp, Slack, and LINE each have a full implementation
+spec (event matrix, auth/verification mechanics, installer questions) in their
+`automations/<tool>/<recipe>/README.md`. The candidate map for tools beyond
+these seven lives in [tool-universe.md](tool-universe.md).
+
 **Phase 5 — Public polish** · size S-M
 `./setup.sh doctor` (validate an install: deps, secrets present, webhook reachable), CI for the repo itself (shellcheck + installer smoke tests in containers), issue templates, demo GIF/video, launch README.
 

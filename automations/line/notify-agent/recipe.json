@@ -1,0 +1,10 @@
+{
+  "name": "LINE Notify Agent",
+  "description": "DESIGNED, NOT YET BUILT — AI-written ship/deploy/incident notifications pushed to LINE (GitHub-native triggers, no relay), plus inbound group Q&A via the Messaging API webhook. See README.md for the implementation spec.",
+  "tool": "line",
+  "status": "planned",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["ship", "incident", "ask"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

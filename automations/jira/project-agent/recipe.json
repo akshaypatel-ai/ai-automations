@@ -1,0 +1,10 @@
+{
+  "name": "Jira Project Agent",
+  "description": "DESIGNED, NOT YET BUILT — all Jira webhook events (issues, comments, sprints, versions, worklogs) via toggleable handlers; board flow through status transitions. See README.md for the implementation spec.",
+  "tool": "jira",
+  "status": "planned",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["issues", "sprints", "versions", "worklogs"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

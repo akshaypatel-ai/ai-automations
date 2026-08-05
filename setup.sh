@@ -34,7 +34,16 @@ list() {
 
 run_recipe() {
   local dir="$ROOT/automations/$1"
-  [[ -f "$dir/setup.sh" ]] || { echo "error: unknown recipe '$1' (try ./setup.sh --list)" >&2; exit 1; }
+  if [[ ! -d "$dir" ]]; then
+    echo "error: unknown recipe '$1' (try ./setup.sh --list)" >&2
+    exit 1
+  fi
+  if [[ ! -f "$dir/setup.sh" ]]; then
+    echo "'$1' is designed but not yet built — the implementation spec lives at:" >&2
+    echo "  automations/$1/README.md" >&2
+    echo "Contributions welcome (see CONTRIBUTING.md)." >&2
+    exit 1
+  fi
   exec bash "$dir/setup.sh"
 }
 

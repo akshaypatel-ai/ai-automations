@@ -20,14 +20,16 @@ board — via toggleable per-event handlers you pick at install time.
 | Recipe | Tool | What it does | Status |
 |---|---|---|---|
 | [`basecamp/project-agent`](automations/basecamp/project-agent) | Basecamp | Attaches to all Basecamp events via handlers: card board (analyze → discuss → PR), to-dos, messages, docs & files, check-ins, schedule. | ✅ Ready |
-| `slack/triage-agent` | Slack | Triages a support/eng channel: labels, answers FAQs from the repo, escalates real bugs as issues. | 🔜 Planned |
-| `jira/project-agent` | Jira | All Jira webhook events: issues, comments, sprints, versions, worklogs. | 🔜 Planned |
-| `linear/project-agent` | Linear | All Linear webhook events: issues, comments, projects, cycles, docs. | 🔜 Planned |
-| `trello/project-agent` | Trello | All Trello board actions: cards, lists, comments, attachments, members. | 🔜 Planned |
-| `clickup/project-agent` | ClickUp | All ClickUp webhook events: tasks, lists, comments, goals, time tracking. | 🔜 Planned |
-| `line/notify-agent` | LINE | Ship/deploy/incident notifications with AI-written summaries. | 🔜 Planned |
+| [`linear/project-agent`](automations/linear/project-agent) | Linear | Board flow via workflow states (analyze → discuss → PR), HMAC-verified webhooks, GraphQL; relay routes all resource types. | 🧪 Beta |
+| [`jira/project-agent`](automations/jira/project-agent) | Jira | All Jira webhook events: issues, comments, sprints, versions, worklogs. | 📝 Designed |
+| [`trello/project-agent`](automations/trello/project-agent) | Trello | All Trello board actions: cards, lists, comments, attachments, members. | 📝 Designed |
+| [`clickup/project-agent`](automations/clickup/project-agent) | ClickUp | All ClickUp webhook events: tasks, lists, comments, goals, time tracking. | 📝 Designed |
+| [`slack/triage-agent`](automations/slack/triage-agent) | Slack | Channel triage: answers FAQs from the repo, escalates real bugs as issues; mentions, reactions, DMs. | 📝 Designed |
+| [`line/notify-agent`](automations/line/notify-agent) | LINE | AI-written ship/deploy/incident notifications (no relay needed) + group Q&A. | 📝 Designed |
 
-Want one of the planned recipes sooner — or a tool that isn't listed? [Open an issue](../../issues) or contribute it: the recipe contract in [CONTRIBUTING.md](CONTRIBUTING.md) makes new recipes straightforward.
+**Statuses**: ✅ production-proven pattern · 🧪 built, needs live-fire testing · 📝 full implementation spec written, build pending. Beyond these seven, [docs/tool-universe.md](docs/tool-universe.md) maps 30+ more candidate tools (Asana, Monday, Notion, GitHub Issues, Discord, Teams, Zendesk, Intercom, Sentry, …) with their webhook capabilities.
+
+Want a recipe sooner — or a tool that isn't listed? [Open an issue](../../issues) or contribute it: the recipe contract in [CONTRIBUTING.md](CONTRIBUTING.md) makes new recipes straightforward.
 
 ## How it works
 

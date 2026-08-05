@@ -1,0 +1,10 @@
+{
+  "name": "ClickUp Project Agent",
+  "description": "DESIGNED, NOT YET BUILT — all ClickUp webhook events (tasks, comments, lists, folders, spaces, goals, time tracking) via toggleable handlers; board flow through status changes. See README.md for the implementation spec.",
+  "tool": "clickup",
+  "status": "planned",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["tasks", "lists", "folders", "goals", "time"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

@@ -1,0 +1,92 @@
+name: Linear Project Agent
+
+# Event-driven only (no cron): Linear webhook → Cloudflare Worker relay →
+# repository_dispatch → this workflow. workflow_dispatch is the manual
+# reconcile/recovery button (empty item_id = scan watched states + tracked items).
+on:
+  repository_dispatch:
+    types: [ linear_event ]
+  workflow_dispatch:
+    inputs:
+      item_id:
+        description: 'Issue ID (UUID or identifier like ENG-123); empty = reconcile everything watched'
+        required: false
+        default: ''
+      item_type:
+        description: 'Optional type hint (Issue)'
+        required: false
+        default: 'Issue'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# One run per item at a time; queued runs are safe because every run processes
+# "everything new since saved state", not just the event that woke it.
+concurrency:
+  group: linear-agent-${{ github.event.client_payload.item_id || inputs.item_id || 'reconcile' }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Prefer a PAT: PRs opened with the built-in GITHUB_TOKEN don't trigger
+      # pull_request workflows and need manual approval.
+      GH_TOKEN: ${{ secrets.AGENT_GH_PAT || secrets.GITHUB_TOKEN }}
+      # Auth for the AI brain: set ONE of these secrets. CLAUDE_CODE_OAUTH_TOKEN
+      # (from `claude setup-token`, Pro/Max subscription) or ANTHROPIC_API_KEY
+      # (pay-per-token). If both are set, the API key wins.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Same PAT for git pushes, so branch pushes also trigger CI.
+          token: ${{ secrets.AGENT_GH_PAT || github.token }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check Linear auth
+        run: |
+          [ -n "$LINEAR_API_KEY" ] || { echo "::error::Set repo secret LINEAR_API_KEY (Linear Settings → API → personal API key)."; exit 1; }
+          bash scripts/linear-agent/api.sh 'query { viewer { name } }' | jq -e '.data.viewer.name' >/dev/null
+          echo "Linear auth OK"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run agent
+        env:
+          ITEM_ID: ${{ github.event.client_payload.item_id || inputs.item_id }}
+          ITEM_TYPE: ${{ github.event.client_payload.item_type || inputs.item_type }}
+          EVENT_KIND: ${{ github.event.client_payload.kind || 'manual' }}
+        # Unset empty auth vars — an empty ANTHROPIC_API_KEY would shadow the
+        # OAuth token in Claude Code's credential precedence.
+        run: |
+          # Trim whitespace pasted into the secrets; a stray space breaks the bearer token.
+          ANTHROPIC_API_KEY="$(printf '%s' "${ANTHROPIC_API_KEY:-}" | tr -d '[:space:]')"
+          CLAUDE_CODE_OAUTH_TOKEN="$(printf '%s' "${CLAUDE_CODE_OAUTH_TOKEN:-}" | tr -d '[:space:]')"
+          [ -z "$ANTHROPIC_API_KEY" ] && unset ANTHROPIC_API_KEY
+          [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && unset CLAUDE_CODE_OAUTH_TOKEN
+          if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::Set repo secret CLAUDE_CODE_OAUTH_TOKEN (subscription) or ANTHROPIC_API_KEY (API billing)."
+            exit 1
+          fi
+          bash scripts/linear-agent/agent-run.sh
+
+      - name: Upload agent output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-output-${{ github.run_id }}
+          path: .agent-out/
+          if-no-files-found: ignore

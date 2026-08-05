@@ -1,0 +1,10 @@
+{
+  "name": "Linear Project Agent",
+  "description": "Watches a Linear team: analyzes issues entering your triage state, discusses in comments, and implements issues moved to your build state as ready-for-review PRs. Relay routes all Linear webhook resource types; the issues handler is fully implemented.",
+  "tool": "linear",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["issues"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}
