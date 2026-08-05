@@ -1,32 +1,55 @@
-# Trello Project Agent — design (not yet built)
+# Trello Project Agent
 
-The multi-event agent pattern applied to a Trello board. Status: **designed** —
-this document is the implementation spec; Basecamp is the closest reference
-implementation (Trello is also column-based).
+The board-agent flow on Trello: a card enters your **analyze** list → the
+agent posts an analysis (options, trade-offs, recommendation) or clarifying
+questions; discuss in the card's comments; move it to your **implement** list
+→ it builds the agreed change and opens a ready-for-review PR titled
+`[TR-<idShort>]`. It never moves cards and never merges — humans own the board.
 
-## Event coverage (webhook actions → handler families)
+Status: **beta** — a faithful port of the production-proven Basecamp flow to
+Trello's REST API; needs live-fire testing against a real board.
 
-Trello webhooks fire on a *model* (watch the board) and deliver `action`
-objects. Families by `action.type`:
+## Event coverage (relay routes all board actions)
 
-| Handler | Trello action types | Interaction pattern |
+| Handler | Trello action types | Status |
 |---|---|---|
-| `cards` | `createCard`, `updateCard` (incl. list moves via `data.listAfter`), `commentCard`, `addAttachmentToCard` | Board flow: analyze list → options/questions; implement list → PR; comments route to their card |
-| `lists` | `createList`, `updateList`, `moveListFromBoard` | Inert by default (routed, skipped with a logged reason) |
-| `members` | `addMemberToCard`, `removeMemberFromCard` | Optional trigger: assigning the agent's member = "analyze this" |
-| `checklists` | `addChecklistToCard`, `updateCheckItemStateOnCard` | Inert by default |
+| `cards` | `createCard`, `updateCard` (list moves), `commentCard`, `addAttachmentToCard`, … | ✅ implemented (analyze / respond / implement playbooks) |
+| `lists` | `createList`, `updateList`, `moveList*` | Routed, skips cleanly (playbook pending) |
+| `members` | `addMemberToCard`, `removeMemberFromCard` | Routed, skips cleanly (playbook pending) |
+| `checklists` | checklist/check-item actions | Routed, skips cleanly (inert by design) |
 
-## Mechanics
+## Trello-specific mechanics
 
-- **API**: REST (`https://api.trello.com/1/...`), auth via `key` + `token` query params. Plain-text comments (`POST /cards/{id}/actions/comments`).
-- **Webhook creation quirk**: `POST /1/webhooks` with `idModel=<board id>` — Trello immediately sends a `HEAD` request to the callback URL and requires a 200 **before** creating the webhook. The relay Worker must answer `HEAD` (and `GET`) with 200 — a two-line addition to the Basecamp worker.
-- **List moves**: `updateCard` with `data.listAfter.name` — the resolver diffs list ids exactly like Basecamp columns. Watch two lists (analyze/implement) by id.
-- **Comment recency**: action ids are chronological — usable like Basecamp's comment ids (or use `date`).
-- **Deactivation**: `PUT /1/webhooks/{id}` with `active=false` (pause switch).
+- **Webhook handshake**: Trello probes the callback URL with HEAD and requires a 200 before creating the webhook — the Worker answers it.
+- **Signature**: deliveries carry `x-trello-webhook` = base64 HMAC-SHA1(body + callbackURL); verified when the optional `TRELLO_API_SECRET` worker secret is set, with the URL secret as the baseline auth either way.
+- **Edge noise filtering**: `updateCard` fires on every field edit — only moves into watched lists are forwarded (`data.listAfter`); comments arrive as their own `commentCard` actions.
+- **Comment recency**: tracked by action `date` (ISO-8601).
+- **Auth**: API key + token as query params; no CLI install needed (curl + jq).
 
-## Installer questions
+## Install
 
-Board id, analyze/implement list ids + names, handlers, standard conventions.
-Secrets: `TRELLO_KEY` + `TRELLO_TOKEN`, brain auth, `AGENT_GH_PAT`.
-Relay secrets: `GITHUB_PAT`, `WEBHOOK_SECRET` (Trello sends an HMAC header
-`x-trello-webhook` — verify it in the Worker: base64 HMAC-SHA1 of body+callbackURL).
+```bash
+./setup.sh trello/project-agent
+```
+
+Asks for: target repo, board id, the two list ids + display names, and the
+standard conventions (tip: append `.json` to your board URL to see all ids).
+Secrets: `TRELLO_KEY` + `TRELLO_TOKEN`, Claude auth (+ optional
+`AGENT_GH_PAT`); relay: `GITHUB_PAT`, `WEBHOOK_SECRET`, optional
+`TRELLO_API_SECRET`. The installer prints the exact `curl` command that
+creates the webhook.
+
+## Guardrails
+
+Comments only (never moves/archives cards), PRs only against your chosen base
+from `<prefix>/<slug>` branches, never merges, `--dangerously-skip-permissions`
+only in the disposable CI runner, `DRY_RUN=1` local testing, full transcript
+artifacts per run.
+
+## Beta → stable checklist (live-fire against a real board)
+
+- [ ] Webhook creation handshake (HEAD probe) through the relay
+- [ ] Signature verification with `TRELLO_API_SECRET` set
+- [ ] analyze → respond → implement round-trip on a test card
+- [ ] Attachment download + viewing inside the analyze playbook
+- [ ] Reconcile run over both watched lists

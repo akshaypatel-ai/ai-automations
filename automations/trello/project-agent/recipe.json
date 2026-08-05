@@ -1,8 +1,8 @@
 {
   "name": "Trello Project Agent",
-  "description": "DESIGNED, NOT YET BUILT — all Trello board actions (cards, lists, comments, attachments, members, checklists) via toggleable handlers; board flow through list moves. See README.md for the implementation spec.",
+  "description": "Watches a Trello board: analyzes cards entering your analyze list, discusses in comments, and implements cards moved to your build list as ready-for-review PRs. Relay routes all board actions; the cards handler is fully implemented.",
   "tool": "trello",
-  "status": "planned",
+  "status": "beta",
   "runtime": "github-actions",
   "brains": ["claude-code"],
   "handlers": ["cards", "lists", "members", "checklists"],

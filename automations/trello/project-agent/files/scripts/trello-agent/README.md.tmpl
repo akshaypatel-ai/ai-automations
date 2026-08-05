@@ -1,0 +1,47 @@
+# {{AGENT_NAME}} — Trello Project Agent (operations)
+
+Watches Trello board `{{TRELLO_BOARD_ID}}` and reacts to card activity.
+Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Trello webhook (HEAD-probe answered; HMAC-SHA1 verified when TRELLO_API_SECRET set)
+  → Cloudflare Worker relay            scripts/trello-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/trello-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one Trello comment) |
+|---|---|---|
+| Card enters **{{LIST_ANALYZE_NAME}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{LIST_ANALYZE_NAME}} card | `respond` | Answer / updated proposal / remaining questions |
+| Card enters **{{LIST_IMPLEMENT_NAME}}** (or comment there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `trello-agent-state` (`state/<card_id>.json`:
+list_id, phase, last_comment_date, branch, pr_url). Every run re-fetches truth
+from the Trello API and diffs against it — webhook payloads are only
+doorbells. Agent comments are prefixed `{{AGENT_MARKER}} — `; the resolver and
+relay both skip marker comments (loop protection). Comment recency is tracked
+by action `date`.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Trello Project Agent* → *Run workflow* — empty `item_id` reconciles both watched lists + tracked cards; a card id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/trello-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** `api.sh PUT "/1/webhooks/<webhook_id>?active=false"` (list them: `api.sh GET "/1/tokens/<token>/webhooks"`).
+- **Known blind spot:** moving a card back into a watched list silently — re-trigger with a comment or a manual run.
+
+## Local dry-run (safe — needs TRELLO_KEY + TRELLO_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/trello-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<card_id> bash scripts/trello-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Trello writes are **comments only** — the agent never moves, archives, or edits cards; humans own the board.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<kebab-slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
