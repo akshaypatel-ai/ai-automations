@@ -1,0 +1,47 @@
+# {{AGENT_NAME}} — Zendesk Triage Agent (operations)
+
+Watches Zendesk tickets on `{{ZENDESK_SUBDOMAIN}}.zendesk.com` and drafts
+grounded replies as INTERNAL notes — a human sends every customer-facing
+reply. Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Zendesk webhook (signed: X-Zendesk-Webhook-Signature = base64 HMAC-SHA256 of timestamp+body)
+  → Cloudflare Worker relay            scripts/zendesk-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/zendesk-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output |
+|---|---|---|
+| New ticket | `triage` | ONE internal note (draft reply + category); GitHub issue only for real bugs |
+| New public reply on a tracked ticket | `respond` | Updated internal note — or silence when a human already handled it |
+
+State lives on the orphan branch `zendesk-agent-state` (`state/<ticket_id>.json`:
+phase, last_comment_id, issue_url). Every run re-fetches truth from Zendesk's
+API and diffs against it — webhook payloads are only doorbells. Agent notes are
+prefixed `{{AGENT_MARKER}} — `; the resolver counts only PUBLIC comments (the
+agent's own notes are private), with recency tracked by the numeric comment id.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Zendesk Triage Agent* → *Run workflow* — empty `item_id` reconciles recent open tickets + tracked ones; a ticket id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/zendesk-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** deactivate the webhook (Admin Center → Apps and integrations → Webhooks) or the two triggers feeding it (Objects and rules → Business rules → Triggers) — no code change needed.
+
+## Local dry-run (safe — needs ZENDESK_EMAIL + ZENDESK_API_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/zendesk-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<ticket_id> bash scripts/zendesk-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Zendesk writes are **internal notes only** — `note.sh` hardcodes `public: false`, so the agent is structurally unable to reply to customers; a human sends every reply.
+- Never changes ticket status, assignee, or any other field — humans own the queue.
+- Never escalates twice: the GitHub issue URL is saved in state (`issue_url`); follow-ups comment on that issue instead of opening a new one.
+- No customer personal data (names, emails) in GitHub issues — describe, don't paste.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

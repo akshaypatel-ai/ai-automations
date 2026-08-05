@@ -1,0 +1,10 @@
+{
+  "name": "Zendesk Triage Agent",
+  "description": "Triages Zendesk tickets: drafts grounded reply suggestions as INTERNAL notes (humans send the actual reply), answers follow-ups, and escalates real bugs as GitHub issues. Signed-webhook relay; the tickets handler is fully implemented.",
+  "tool": "zendesk",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["tickets"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}
