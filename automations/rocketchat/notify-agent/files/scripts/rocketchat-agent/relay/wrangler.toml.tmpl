@@ -1,0 +1,17 @@
+name = "{{WORKER_NAME}}"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (set with `wrangler secret put`):
+#   GITHUB_PAT                 fine-grained PAT scoped to {{GITHUB_REPO}} only, contents: read+write
+#   ROCKETCHAT_OUTGOING_TOKEN  the Token you set in the Outgoing WebHook form
+
+[vars]
+GITHUB_REPO = "{{GITHUB_REPO}}"
+# Fallback trigger word, stripped from questions when a delivery omits the
+# trigger_word field (Rocket.Chat normally sends it).
+TRIGGER = "{{TRIGGER}}"
+# The agent's display alias — posts by it or quoting it are dropped, on top of
+# the `bot` flag guard (Rocket.Chat has no structural bot-loop protection:
+# incoming-webhook posts can re-trigger outgoing webhooks on some configs).
+AGENT_MARKER = "{{AGENT_NAME}}"

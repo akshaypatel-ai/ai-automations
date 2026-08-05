@@ -1,0 +1,10 @@
+{
+  "name": "Rocket.Chat Notify Agent",
+  "description": "AI-written ship/deploy/incident notifications pushed to a Rocket.Chat channel via GitHub-native triggers (no relay), plus optional trigger-word Q&A through a token-verified outgoing-webhook relay.",
+  "tool": "rocketchat",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["ship", "incident", "ask"],
+  "requires": ["git", "jq", "gh", "curl"]
+}

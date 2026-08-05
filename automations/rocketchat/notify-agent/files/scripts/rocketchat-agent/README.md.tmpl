@@ -1,0 +1,54 @@
+# {{AGENT_NAME}} — Rocket.Chat Notify Agent (operations)
+
+AI-written notifications pushed to Rocket.Chat, plus optional trigger-word Q&A.
+Installed by [ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+ship:     release published        → GitHub-native trigger → push.sh (incoming webhook, markdown)
+incident: monitored workflow fails → GitHub-native trigger → push.sh
+ask:      trigger word in channel  → relay (token check, immediate courtesy reply)
+                                     → repository_dispatch → push.sh (answer to the channel)
+```
+
+| Handler | Trigger | Output |
+|---|---|---|
+| `ship` | `release: published` | Plain-language what's-new announcement (grounded — never invented) |
+| `incident` | monitored `workflow_run` fails | Calm what/impact/likely-cause note with the run link |
+| `ask` | trigger word via outgoing webhook | Q-quoted, repo-grounded answer posted to the channel |
+
+Stateless — notifications are one-shot; there's no state branch. Rocket.Chat's
+outgoing webhooks allow one immediate JSON reply, so the relay says "on it"
+and the real answer lands via the incoming (notify) webhook — point both at
+the same channel. Deliveries are always JSON, and verification is a plain
+token compare against the Token set in the webhook form (no HMAC — that's
+all Rocket.Chat offers). Bot-loop protection is doubled: the relay drops
+messages with a truthy `bot` flag AND anything by/quoting `{{AGENT_NAME}}`,
+because incoming-webhook posts can re-trigger outgoing webhooks on some
+server configs.
+
+## Operating
+
+- **Manual test:** Actions → *Rocket.Chat Notify Agent* → *Run workflow* → mode.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/rocketchat-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause ship/incident:** `gh workflow disable "Rocket.Chat Notify Agent"`.
+- **Pause ask:** disable the outgoing webhook (Admin → Integrations).
+- **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/rocketchat-agent.yml` — edit and merge to change.
+- **Agent identity:** posts show as `{{AGENT_NAME}}` via the `alias` field
+  (Rocket.Chat's name for Mattermost's `username` override) — harmless if
+  the server restricts overriding (the field is ignored).
+
+## Local dry-run (safe — no AI, nothing sent)
+
+```bash
+DRY_RUN=1 MODE=ship RELEASE_TAG=v0.0.0 bash scripts/rocketchat-agent/agent-run.sh
+DRY_RUN=1 MODE=incident WF_NAME=CI bash scripts/rocketchat-agent/agent-run.sh
+DRY_RUN=1 MODE=ask ASK_TEXT="how does login work?" bash scripts/rocketchat-agent/agent-run.sh
+```
+
+## Guardrails
+
+- One message per event; pushes only through the configured incoming webhook.
+- No invented features, no speculative root causes stated as fact; `ask` never writes code.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
