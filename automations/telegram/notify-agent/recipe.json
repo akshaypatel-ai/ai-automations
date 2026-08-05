@@ -1,0 +1,10 @@
+{
+  "name": "Telegram Notify Agent",
+  "description": "AI-written ship/deploy/incident notifications pushed to a Telegram chat via GitHub-native triggers (no relay), plus optional inbound Q&A through a secret-token-verified webhook relay.",
+  "tool": "telegram",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["ship", "incident", "ask"],
+  "requires": ["git", "jq", "gh", "curl"]
+}

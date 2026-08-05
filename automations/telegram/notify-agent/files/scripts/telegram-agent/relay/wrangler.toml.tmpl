@@ -1,0 +1,12 @@
+name = "{{WORKER_NAME}}"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Only needed for the `ask` handler — ship/incident use GitHub-native triggers.
+# Secrets (set with `wrangler secret put`):
+#   GITHUB_PAT               fine-grained PAT scoped to {{GITHUB_REPO}} only, contents: read+write
+#   TELEGRAM_WEBHOOK_SECRET  the secret_token you register with setWebhook (e.g. `openssl rand -hex 24`)
+
+[vars]
+GITHUB_REPO = "{{GITHUB_REPO}}"
+WATCHED_CHAT = "{{TELEGRAM_CHAT_ID}}"

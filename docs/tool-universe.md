@@ -27,7 +27,7 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 |---|---|---|
 | ✅ Discord | Yes (interactions + outbound webhooks) | **Built**: [`discord/notify-agent`](../automations/discord/notify-agent) |
 | ✅ Microsoft Teams | Yes (outgoing + incoming webhooks) | **Built**: [`teams/notify-agent`](../automations/teams/notify-agent) |
-| ✦ Telegram | Yes (bot API, dead simple) | Notify + Q&A bots — cheapest remaining chat recipe |
+| ✅ Telegram | Yes (bot API, dead simple) | **Built**: [`telegram/notify-agent`](../automations/telegram/notify-agent) |
 | WhatsApp Business | Yes (Cloud API) | Notify to founders/clients |
 | Google Chat | Yes | Workspace shops |
 | Mattermost / Rocket.Chat | Yes | Self-hosted Slack twins — pairs with Docker-server runtime |

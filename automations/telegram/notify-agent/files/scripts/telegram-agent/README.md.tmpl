@@ -1,0 +1,45 @@
+# {{AGENT_NAME}} — Telegram Notify Agent (operations)
+
+AI-written notifications for {{PROJECT_NAME}} pushed to Telegram chat
+`{{TELEGRAM_CHAT_ID}}`. Stateless and mostly relay-free. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+| Handler | Trigger | Output (one Telegram message) |
+|---|---|---|
+| ship | GitHub release published (native trigger, no relay) | Plain-language release announcement |
+| incident | Monitored workflow ({{INCIDENT_WORKFLOWS}}) fails (native trigger) | What broke / impact / likely cause / link |
+| ask | Chat message via secret-token-verified webhook → relay | Grounded answer from the repo (or silence for chatter) |
+
+Enabled: **{{HANDLERS}}**. No state branch — notifications are one-shot; the
+doorbell/diff machinery isn't needed here. Messages go out as plain text
+(`parse_mode` off — arbitrary AI output can never fail Telegram's Markdown
+parser), capped defensively under the 4096-char limit.
+
+## Operating
+
+- **Manual test:** Actions → *Telegram Notify Agent* → *Run workflow* → mode `ship`/`incident`/`ask`.
+- **Transcripts:** every run uploads `.agent-out/` (prompt with gathered context, AI transcript) as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/telegram-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause ship/incident:** disable the workflow in the Actions UI.
+  **Pause ask:** `curl "https://api.telegram.org/bot<TOKEN>/deleteWebhook"`.
+- **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/telegram-agent.yml` — edit and merge to change.
+- **Group privacy mode:** by default the bot only sees group messages that mention it or reply to it. Mention it (`@yourbot how does X work?`) or disable privacy mode via @BotFather → `/setprivacy` → Disabled.
+
+## Local dry-run (no AI, no push)
+
+```bash
+DRY_RUN=1 MODE=ship RELEASE_TAG=v1.2.3 bash scripts/telegram-agent/agent-run.sh
+DRY_RUN=1 MODE=incident WF_NAME=CI WF_URL=http://example bash scripts/telegram-agent/agent-run.sh
+DRY_RUN=1 MODE=ask ASK_TEXT="does the app support X?" bash scripts/telegram-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Pushes only to the configured chat — the relay drops messages from every other chat (`WATCHED_CHAT`), and `ask` answers land only where the question was asked.
+- ONE message per event; playbooks never invent features or speculate on root causes beyond the log + code actually read.
+- `ask` never writes code — build requests are redirected to the team's board.
+- The `ask` webhook is verified at the edge: Telegram echoes the `setWebhook` secret_token in `X-Telegram-Bot-Api-Secret-Token` on every delivery; mismatches get a 401.
+- Loop-proof: updates from bots (including this agent's own pushes) are ignored at the relay.
+- No reply deadline: answers are plain `sendMessage` pushes — nothing expires while CI runs, the simplest inbound path in the collection.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

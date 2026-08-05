@@ -32,11 +32,12 @@ board — via toggleable per-event handlers you pick at install time.
 | [`notion/project-agent`](automations/notion/project-agent) | Notion | Board flow on a database's status property; signature-verified relay routes all webhook events. | 🧪 Beta |
 | [`discord/notify-agent`](automations/discord/notify-agent) | Discord | AI-written ship/incident notifications (channel webhook, no relay) + `/ask` slash command via Ed25519-verified interactions. | 🧪 Beta |
 | [`teams/notify-agent`](automations/teams/notify-agent) | Microsoft Teams | AI-written ship/incident notifications (channel webhook, no relay) + @mention Q&A via signed outgoing webhook. | 🧪 Beta |
+| [`telegram/notify-agent`](automations/telegram/notify-agent) | Telegram | AI-written ship/incident notifications (Bot API, no relay) + chat Q&A via secret-token-verified webhook. | 🧪 Beta |
 | [`zendesk/triage-agent`](automations/zendesk/triage-agent) | Zendesk | Ticket triage: grounded draft replies as internal notes (humans send), bugs escalated as GitHub issues. | 🧪 Beta |
 | [`intercom/triage-agent`](automations/intercom/triage-agent) | Intercom | Conversation triage: grounded draft replies as internal notes, bugs escalated as GitHub issues. | 🧪 Beta |
 | [`sentry/triage-agent`](automations/sentry/triage-agent) | Sentry | Error alerts become root-cause sketches filed as GitHub issues; recurrences update the same issue. | 🧪 Beta |
 
-**Statuses**: ✅ production-proven pattern · 🧪 built and smoke-tested, needs live-fire testing against the real service (each recipe README carries its checklist). Beyond these sixteen, [docs/tool-universe.md](docs/tool-universe.md) maps 20+ more candidate tools (Telegram, Airtable, Confluence, Figma, PagerDuty, GitLab, Azure DevOps, …) with their webhook capabilities.
+**Statuses**: ✅ production-proven pattern · 🧪 built and smoke-tested, needs live-fire testing against the real service (each recipe README carries its checklist). Beyond these seventeen, [docs/tool-universe.md](docs/tool-universe.md) maps 20+ more candidate tools (Airtable, Confluence, Figma, PagerDuty, GitLab, Azure DevOps, …) with their webhook capabilities.
 
 Want a recipe sooner — or a tool that isn't listed? [Open an issue](../../issues) or contribute it: the recipe contract in [CONTRIBUTING.md](CONTRIBUTING.md) makes new recipes straightforward.
 
