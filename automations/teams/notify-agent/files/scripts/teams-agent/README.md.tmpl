@@ -1,0 +1,46 @@
+# {{AGENT_NAME}} — Teams Notify Agent (operations)
+
+AI-written notifications pushed to Microsoft Teams, plus optional @mention Q&A.
+Installed by [ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+ship:     release published        → GitHub-native trigger → push.sh (channel webhook, Adaptive Card)
+incident: monitored workflow fails → GitHub-native trigger → push.sh
+ask:      @mention outgoing webhook → relay (HMAC, 5s courtesy reply)
+                                     → repository_dispatch → push.sh (answer to the channel)
+```
+
+| Handler | Trigger | Output |
+|---|---|---|
+| `ship` | `release: published` | Plain-language what's-new announcement (grounded — never invented) |
+| `incident` | monitored `workflow_run` fails | Calm what/impact/likely-cause note with the run link |
+| `ask` | @mention of the outgoing webhook | Q-quoted, repo-grounded answer posted to the channel |
+
+Stateless — notifications are one-shot; there's no state branch. Teams'
+outgoing webhooks only allow one synchronous reply (≈5s), so the relay says
+"on it" and the real answer lands via the notify webhook — point both at the
+same channel.
+
+## Operating
+
+- **Manual test:** Actions → *Teams Notify Agent* → *Run workflow* → mode.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/teams-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause ship/incident:** `gh workflow disable "Teams Notify Agent"`.
+- **Pause ask:** delete the outgoing webhook (Team → Manage team → Apps).
+- **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/teams-agent.yml` — edit and merge to change.
+
+## Local dry-run (safe — no AI, nothing sent)
+
+```bash
+DRY_RUN=1 MODE=ship RELEASE_TAG=v0.0.0 bash scripts/teams-agent/agent-run.sh
+DRY_RUN=1 MODE=incident WF_NAME=CI bash scripts/teams-agent/agent-run.sh
+DRY_RUN=1 MODE=ask ASK_TEXT="how does login work?" bash scripts/teams-agent/agent-run.sh
+```
+
+## Guardrails
+
+- One message per event; pushes only through the configured channel webhook.
+- No invented features, no speculative root causes stated as fact; `ask` never writes code.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

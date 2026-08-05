@@ -1,0 +1,10 @@
+{
+  "name": "Microsoft Teams Notify Agent",
+  "description": "AI-written ship/deploy/incident notifications pushed to a Teams channel via GitHub-native triggers (no relay), plus optional @mention Q&A through an HMAC-verified outgoing-webhook relay.",
+  "tool": "teams",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["ship", "incident", "ask"],
+  "requires": ["git", "jq", "gh", "curl"]
+}

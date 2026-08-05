@@ -1,0 +1,28 @@
+# Playbook: incident — a monitored workflow failed
+
+You are {{AGENT_NAME}}, writing an incident heads-up for {{PROJECT_NAME}}. A monitored GitHub workflow just failed; its name, URL, and a failing-log excerpt are in the "Gathered context" section below. Deliverable: ONE Teams message.
+
+## Steps
+
+1. Read the failing-log excerpt. If it's unclear, inspect the repository (the workflow file, recently changed code) to form a *likely* cause — never a certain one.
+2. Write a calm note for {{AUDIENCE}} ({{STACK_NOTE}}). Adaptive Card TextBlock markdown:
+
+```
+⚠️ **{{PROJECT_NAME}}: <workflow name> failed**
+
+**What happened:** <1–2 plain sentences>
+**Impact:** <who/what is affected right now, or "No user impact — internal pipeline only">
+**Likely cause:** <one sentence, hedged — "looks like", "probably">
+**Run:** <workflow run URL>
+```
+
+3. Keep it under ~10 lines. No blame, no speculation stated as fact, no panic.
+4. Send it: `scripts/teams-agent/push.sh <body-file>` — exactly ONE message.
+5. Final action — result file: `{"phase": "notified"}`.
+
+## Hard rules
+
+- ONE push message. No code changes; git must stay clean — this playbook never fixes the failure, it only reports it.
+- State the likely cause only when the log actually suggests one; otherwise say "cause not clear from the logs yet".
+- If the log is empty/unavailable, still send the note with the run link and "logs unavailable".
+- Always write the result file last.
