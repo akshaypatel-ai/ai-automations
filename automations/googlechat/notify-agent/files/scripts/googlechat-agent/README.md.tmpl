@@ -1,0 +1,48 @@
+# {{AGENT_NAME}} — Google Chat Notify Agent (operations)
+
+AI-written notifications for {{PROJECT_NAME}} pushed to a Google Chat space
+webhook. Stateless and fully relay-free. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+ship:     release published        → GitHub-native trigger → push.sh (space webhook)
+incident: monitored workflow fails → GitHub-native trigger → push.sh (space webhook)
+```
+
+| Handler | Trigger | Output (one Google Chat message) |
+|---|---|---|
+| ship | GitHub release published (native trigger, no relay) | Plain-language release announcement |
+| incident | Monitored workflow ({{INCIDENT_WORKFLOWS}}) fails (native trigger) | What broke / impact / likely cause / link |
+
+Enabled: **{{HANDLERS}}**. No state branch — notifications are one-shot; the
+doorbell/diff machinery isn't needed here. Messages go out as plain text with
+• bullets (Google Chat renders *bold* and simple markup, but arbitrary AI
+output can break it), capped defensively under the ~4096-char limit.
+
+There is no inbound path: answering questions from the space would need a
+Google Chat app — a GCP project plus the Chat API — which is a possible
+future `ask` handler, deliberately out of scope for this webhook-only recipe.
+
+## Operating
+
+- **Manual test:** Actions → *Google Chat Notify Agent* → *Run workflow* → mode `ship`/`incident`.
+- **Transcripts:** every run uploads `.agent-out/` (prompt with gathered context, AI transcript) as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/googlechat-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** `gh workflow disable "Google Chat Notify Agent"`.
+- **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/googlechat-agent.yml` — edit and merge to change.
+- **Rotate the webhook:** space → ⚙ → Apps & integrations → Webhooks — delete and re-add, then update the `GCHAT_WEBHOOK_URL` secret. The URL embeds its own key+token, so rotating the webhook rotates the credential.
+
+## Local dry-run (no AI, no push)
+
+```bash
+DRY_RUN=1 MODE=ship RELEASE_TAG=v1.2.3 bash scripts/googlechat-agent/agent-run.sh
+DRY_RUN=1 MODE=incident WF_NAME=CI WF_URL=http://example bash scripts/googlechat-agent/agent-run.sh
+```
+
+## Guardrails
+
+- ONE message per event; pushes only through the configured space webhook.
+- No invented features; playbooks never speculate on root causes beyond the log + code actually read.
+- The webhook URL is the credential — it lives in the `GCHAT_WEBHOOK_URL` repo secret and is never written to a file.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

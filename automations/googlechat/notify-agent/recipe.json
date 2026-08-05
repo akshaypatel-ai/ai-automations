@@ -1,0 +1,10 @@
+{
+  "name": "Google Chat Notify Agent",
+  "description": "AI-written ship/deploy/incident notifications pushed to a Google Chat space via GitHub-native triggers and a space webhook — fully relay-free, nothing to deploy beyond secrets.",
+  "tool": "googlechat",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["ship", "incident"],
+  "requires": ["git", "jq", "gh", "curl"]
+}
