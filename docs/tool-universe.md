@@ -46,7 +46,7 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 
 | Tool | Webhooks | Notes |
 |---|---|---|
-| Confluence | Yes | Spec-vs-code review, like the Basecamp `docs` handler |
+| ✅ Confluence | Automation rules → web request (no Cloud admin webhooks) | **Built**: [`confluence/docs-agent`](../automations/confluence/docs-agent) |
 | Google Drive/Docs | Yes (Drive API push) | Watch a specs folder |
 | Figma | Yes (file/comment events) | Design-comment Q&A; dev-handoff checks |
 | Miro | Yes | Board comments |

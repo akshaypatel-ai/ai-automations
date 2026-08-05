@@ -1,0 +1,10 @@
+{
+  "name": "Confluence Docs Agent",
+  "description": "Review-on-request for docs: label a Confluence page and get ONE footer comment reviewing the spec against what the code in your repository actually does — aligned, missing, contradicting, plus numbered questions. Automation-rule doorbells (or the manual button); the pages handler is fully implemented.",
+  "tool": "confluence",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["pages"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

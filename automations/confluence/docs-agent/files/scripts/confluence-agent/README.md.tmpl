@@ -1,0 +1,58 @@
+# {{AGENT_NAME}} — Confluence Docs Agent (operations)
+
+Reviews Confluence pages on `{{CONFLUENCE_SITE}}.atlassian.net/wiki` against
+this repository: add the `{{REVIEW_LABEL}}` label to a page and the agent
+posts ONE footer comment — what's aligned, what's missing, what contradicts
+the code, plus numbered questions. Comments only: it never edits pages and
+never changes labels. Event-driven — no cron, no servers to maintain.
+Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Confluence Automation rule "Send web request" (URL secret: /hook/<WEBHOOK_SECRET>)
+  → Cloudflare Worker relay            scripts/confluence-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/confluence-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+Confluence Cloud has no admin-configurable webhooks (a Connect/Forge-app
+feature) — the doorbell is an Automation rule (Premium+). On Standard plans,
+Actions → *Run workflow* is the doorbell: label pages, press the button.
+
+| Trigger | Playbook | Output |
+|---|---|---|
+| `{{REVIEW_LABEL}}` label added to a page | `review` | ONE footer comment: verdict, matches / missing-or-out-of-date vs the code, numbered questions |
+| New human comment on a tracked page | `respond` | ONE grounded reply — or silence when the thread isn't addressed to the agent |
+
+State lives on the orphan branch `confluence-agent-state`
+(`state/<page_id>.json`: phase, last_comment_at). Every run re-fetches truth
+from Confluence's API and diffs against it — web-request payloads are only
+doorbells. Reads are REST v2 plus one documented v1 CQL search for the
+reconcile scan (v2 can't filter pages by label name). Bodies are
+storage-format XHTML: playbooks write PLAIN TEXT and `comment.sh` converts;
+agent comments are prefixed `{{AGENT_MARKER}} — ` and tag-stripped before the
+marker check, with recency tracked by the comment's `version.createdAt` (ISO,
+string-compared).
+
+## Operating
+
+- **Recover / backfill:** Actions → *Confluence Docs Agent* → *Run workflow* — empty `item_id` reconciles labeled pages + tracked ones; a page id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/confluence-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** disable the two Automation rules (Space settings → Automation, or Global automation) — no code change needed. Standard-plan installs: just stop pressing the button.
+
+## Local dry-run (safe — needs CONFLUENCE_EMAIL + CONFLUENCE_API_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/confluence-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<page_id> bash scripts/confluence-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Confluence writes are **footer comments only** — `comment.sh` posts comments and nothing else; the agent never edits page bodies and never adds or removes labels. The label workflow belongs to your team.
+- At most ONE comment per run — and none when a thread isn't addressed to the agent.
+- No PRs, no issues: the workflow's only permission is `contents: write`, for the state branch.
+- Only repo-verified claims in reviews — what the agent can't verify is flagged, not asserted.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
