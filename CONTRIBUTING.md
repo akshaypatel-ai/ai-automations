@@ -50,4 +50,4 @@ These are the promises the README makes for the whole repo — recipes that brea
 
 ## Non-recipe contributions
 
-Hardening, portability fixes (bash 3.2 on macOS is the floor), clearer docs, and translations of existing recipes to new tools (the board-agent pattern maps cleanly onto Jira/Linear/Trello/ClickUp) are all welcome. Keep shell scripts `set -euo pipefail`, dependency-light (`bash`, `git`, `jq`), and readable.
+Hardening, portability fixes (bash 3.2 on macOS is the floor), clearer docs, and translations of existing recipes to new tools (the project-agent pattern maps cleanly onto Jira/Linear/Trello/ClickUp) are all welcome. Keep shell scripts `set -euo pipefail`, dependency-light (`bash`, `git`, `jq`), and readable.

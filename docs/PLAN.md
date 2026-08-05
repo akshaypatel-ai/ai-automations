@@ -71,7 +71,33 @@ Two classes, one contract. An **agentic CLI** can explore the repo, edit code, a
 
 ---
 
-## 4. Layer 1 deep dive — tool/event-source matrix
+## 4. Layer 1 deep dive — tools cover ALL their events, not just boards
+
+**Principle: a tool recipe attaches to every event stream the tool's webhooks
+expose**, organized into *handler families* the user toggles at install time.
+One relay + one dispatcher route each event to its family's playbook; disabled
+families are filtered at the edge so they cost nothing.
+
+Basecamp's full webhook surface (from the CLI: `basecamp webhooks create --help`)
+→ six handler families:
+
+| Handler | Event types | Interaction pattern |
+|---|---|---|
+| `cards` | `Kanban::Card` (+ comments) | Board flow: analyze column → discuss → implement column → PR |
+| `todos` | `Todo`, `Todolist` (+ comments) | Discuss/answer; build explicitly requested changes as PRs |
+| `messages` | `Message` (+ comments) | Answer when addressed; silent otherwise |
+| `docs` | `Document`, `Upload`, `Vault` (+ comments) | Review specs/files against the real code when asked |
+| `checkins` | `Question`, `Question::Answer` (+ comments) | Reply when directly asked |
+| `schedule` | `Schedule::Entry` (+ comments) | Meeting prep on request |
+
+The same full-coverage treatment maps onto the other tools:
+**Jira** (`jira:issue_created/updated/deleted`, `comment_*`, `sprint_*`,
+`version_*`, `worklog_*`), **ClickUp** (`task*`, `list*`, `folder*`, `space*`,
+`goal*`, comments, time tracking), **Linear** (Issue, Comment, Project,
+ProjectUpdate, Cycle, Document, Label), **Trello** (all board actions),
+**Slack** (Events API: messages, reactions, channel events, mentions).
+
+### Tool/event-source matrix
 
 | Tool | Webhooks | Auth model | API for re-fetching truth | Recipe difficulty |
 |---|---|---|---|---|
@@ -83,7 +109,7 @@ Two classes, one contract. An **agentic CLI** can explore the repo, edit code, a
 | **ClickUp** | Yes, HMAC-signed | API token | REST | Easy-Medium |
 | **LINE** | Messaging API, HMAC-signed | Channel token | Messaging API | Easy (notify-style recipes, not board-style) |
 
-The **board-agent pattern** (analyze column → discuss → implement column → PR) ports almost 1:1 to Linear, Jira, Trello, and ClickUp: same resolver logic, same three playbooks, different API calls. Slack and LINE follow different interaction patterns (triage/notify) and get their own recipe shapes.
+The **project-agent pattern** (analyze column → discuss → implement column → PR) ports almost 1:1 to Linear, Jira, Trello, and ClickUp: same resolver logic, same playbooks, different API calls. Slack and LINE follow different interaction patterns (triage/notify) and get their own recipe shapes.
 
 ---
 
@@ -117,8 +143,8 @@ ai-automations/
 │   │   └── README.md               # incl. n8n/Pipedream no-code path
 │   └── state/git-branch.sh         # restore/save (shared)
 ├── automations/
-│   ├── basecamp/board-agent/       # recipe.json, README, setup.sh, playbooks/, scripts/
-│   ├── linear/board-agent/         # (phase 4 — thin: API calls + column names differ)
+│   ├── basecamp/project-agent/       # recipe.json, README, setup.sh, playbooks/, scripts/
+│   ├── linear/project-agent/         # (phase 4 — thin: API calls + column names differ)
 │   ├── slack/triage-agent/  jira/  trello/  clickup/  line/
 ├── docs/
 │   ├── PLAN.md                     # this file
@@ -133,7 +159,7 @@ ai-automations/
 
 ```
 ./setup.sh
-  1. Pick automation        → basecamp/board-agent
+  1. Pick automation        → basecamp/project-agent
   2. Pick runtime           → GitHub Actions | GitLab | Bitbucket | Docker server
   3. Pick AI brain          → Claude Code | Codex | Gemini | Aider | raw API   (filtered by recipe needs)
   4. Tool questions         → account/project/board/column IDs (with "where to find this" help)
@@ -147,7 +173,7 @@ ai-automations/
 ## 7. Phased roadmap
 
 **Phase 1 — Working vertical slice (the proof)** · size M
-Core wizard lib + `basecamp/board-agent` on **GitHub Actions + Claude Code** (port of the proven production design, fully parameterized — no hardcoded IDs). Root picker, recipe docs, dry-run mode, smoke-tested installer.
+Core wizard lib + `basecamp/project-agent` on **GitHub Actions + Claude Code** (port of the proven production design, fully parameterized — no hardcoded IDs). Root picker, recipe docs, dry-run mode, smoke-tested installer.
 *Done when: a stranger clones the repo and gets a working Basecamp agent in ~15 minutes.*
 
 **Phase 2 — Pluggable brains** · size M
@@ -159,7 +185,7 @@ Core wizard lib + `basecamp/board-agent` on **GitHub Actions + Claude Code** (po
 *Done when: runtime is an installer question and each has a smoke-test doc.*
 
 **Phase 4 — More tools** · size M per tool
-Order: **Linear** (best API — validates that the board-agent core is truly reusable) → **Jira** → **Trello** → **ClickUp** → **Slack triage-agent** (new pattern) → **LINE notify**.
+Order: **Linear** (best API — validates that the project-agent core is truly reusable) → **Jira** → **Trello** → **ClickUp** → **Slack triage-agent** (new pattern) → **LINE notify**.
 *Done when: each recipe passes the same 15-minute stranger test.*
 
 **Phase 5 — Public polish** · size S-M

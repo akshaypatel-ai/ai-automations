@@ -1,9 +1,0 @@
-{
-  "name": "Basecamp Board Agent",
-  "description": "Watches a Basecamp card table: analyzes new cards, answers replies, and turns approved cards into ready-for-review pull requests via headless AI.",
-  "tool": "basecamp",
-  "status": "stable",
-  "runtime": "github-actions",
-  "brains": ["claude-code"],
-  "requires": ["git", "jq", "gh", "basecamp CLI", "wrangler"]
-}

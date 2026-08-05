@@ -1,0 +1,10 @@
+{
+  "name": "Basecamp Project Agent",
+  "description": "Attaches to every Basecamp event stream via toggleable handlers — card board (analyze → discuss → PR), to-dos, messages, docs & files, check-ins, schedule — powered by headless AI.",
+  "tool": "basecamp",
+  "status": "stable",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["cards", "todos", "messages", "docs", "checkins", "schedule"],
+  "requires": ["git", "jq", "gh", "basecamp CLI", "wrangler"]
+}

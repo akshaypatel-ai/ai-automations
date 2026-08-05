@@ -1,0 +1,57 @@
+# {{AGENT_NAME}} — Basecamp Project Agent (operations)
+
+Watches Basecamp project `{{BC_PROJECT_ID}}` and reacts to board/to-do/message
+(and other enabled) activity. Event-driven — no cron, no servers to maintain.
+Installed by [ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update or change handlers (your answers are saved in
+`automation.config.json`).
+
+```
+Basecamp webhook ({{WEBHOOK_TYPES}})
+  → Cloudflare Worker relay            scripts/basecamp-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/basecamp-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+Enabled handlers: **{{HANDLERS}}**
+
+| Handler | Trigger | Output |
+|---|---|---|
+| cards | Card enters **{{COL_ANALYZE_NAME}}** / comment there | ONE comment: options + recommendation, or questions |
+| cards | Card enters **{{COL_IMPLEMENT_NAME}}** / comment there | PR into `{{PR_BASE}}` + ONE comment — or questions |
+| todos | New to-do / new human comment (list: {{BC_TODOLIST_ID}}) | Reply, questions, or an explicitly requested PR — silent if not for the agent |
+| messages | New post / comment | Grounded answer when addressed — otherwise silent |
+| docs | New doc/upload / comment | Spec-vs-code review when asked — otherwise silent |
+| checkins | New check-in answer / comment | Reply when directly asked — otherwise silent |
+| schedule | New/changed entry / comment | Prep notes when requested — otherwise silent |
+
+State lives on the orphan branch `basecamp-agent-state`
+(`state/<item_id>.json`: item_type, phase, last_comment_id, branch, pr_url).
+Every run re-fetches truth from Basecamp and diffs against it — webhook
+payloads are only doorbells, so duplicate or stale events are harmless. Agent
+comments are prefixed `{{AGENT_MARKER}} — `; the resolver and the relay both
+skip marker-prefixed comments (loop protection).
+
+## Operating
+
+- **Recover from a missed webhook / backfill an item:** Actions → *Basecamp Project Agent* → *Run workflow* — empty `item_id` reconciles watched columns/to-do lists plus every tracked item; a specific `item_id` (with optional `item_type` hint) processes one item.
+- **Transcripts:** every run uploads `.agent-out/` (prompt, full AI transcript, result JSON) as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/basecamp-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Handlers:** `ENABLED_HANDLERS` in `env.sh` **and** the relay's `wrangler.toml` must agree — change both (easiest: re-run the installer, then redeploy the relay).
+- **Pause the agent:** deactivate the webhook — `basecamp webhooks list --in {{BC_PROJECT_ID}}` then `basecamp webhooks update <id> --inactive --in {{BC_PROJECT_ID}}`.
+- **Known blind spots:** moving a card back into a watched column *without saying anything* is not dispatched — re-trigger with a comment or a manual run. Messages/docs/check-ins/schedule have no cheap "list recent" reconcile — they are webhook-driven; backfill a specific one by ID via *Run workflow*.
+
+## Local dry-run (safe: no comments, no AI, no state push)
+
+```bash
+DRY_RUN=1 bash scripts/basecamp-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<id> bash scripts/basecamp-agent/agent-run.sh   # one item
+```
+
+## Guardrails
+
+- Basecamp writes are **comments only** — the agent never moves cards, completes to-dos, or edits/archives/deletes anything; humans own the project.
+- Off the board, the agent replies only when addressed and writes code only on an explicit human instruction; message/doc/check-in/schedule threads redirect build requests to a card or to-do.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<kebab-slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` is used only inside the disposable CI runner, never locally (local runs are `DRY_RUN` and stop before any AI call).
+- Basecamp OAuth: the runner seeds `credentials.json` from the `BASECAMP_CREDENTIALS_JSON` secret each run. If runs fail at "Seed Basecamp auth": `BASECAMP_NO_KEYRING=1 basecamp auth login` locally, then re-set the secret.

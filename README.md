@@ -14,14 +14,17 @@ The installer lists every available automation, asks the recipe-specific questio
 
 ## Available automations
 
+Recipes attach to **every event stream their tool exposes** — not just one
+board — via toggleable per-event handlers you pick at install time.
+
 | Recipe | Tool | What it does | Status |
 |---|---|---|---|
-| [`basecamp/board-agent`](automations/basecamp/board-agent) | Basecamp | Watches a card table: analyzes new cards, answers replies, and turns approved cards into ready-for-review pull requests via headless Claude Code. | ✅ Ready |
+| [`basecamp/project-agent`](automations/basecamp/project-agent) | Basecamp | Attaches to all Basecamp events via handlers: card board (analyze → discuss → PR), to-dos, messages, docs & files, check-ins, schedule. | ✅ Ready |
 | `slack/triage-agent` | Slack | Triages a support/eng channel: labels, answers FAQs from the repo, escalates real bugs as issues. | 🔜 Planned |
-| `jira/board-agent` | Jira | Same board-agent pattern for a Jira board. | 🔜 Planned |
-| `linear/board-agent` | Linear | Same board-agent pattern for a Linear team. | 🔜 Planned |
-| `trello/board-agent` | Trello | Same board-agent pattern for a Trello board. | 🔜 Planned |
-| `clickup/board-agent` | ClickUp | Same board-agent pattern for a ClickUp list. | 🔜 Planned |
+| `jira/project-agent` | Jira | All Jira webhook events: issues, comments, sprints, versions, worklogs. | 🔜 Planned |
+| `linear/project-agent` | Linear | All Linear webhook events: issues, comments, projects, cycles, docs. | 🔜 Planned |
+| `trello/project-agent` | Trello | All Trello board actions: cards, lists, comments, attachments, members. | 🔜 Planned |
+| `clickup/project-agent` | ClickUp | All ClickUp webhook events: tasks, lists, comments, goals, time tracking. | 🔜 Planned |
 | `line/notify-agent` | LINE | Ship/deploy/incident notifications with AI-written summaries. | 🔜 Planned |
 
 Want one of the planned recipes sooner — or a tool that isn't listed? [Open an issue](../../issues) or contribute it: the recipe contract in [CONTRIBUTING.md](CONTRIBUTING.md) makes new recipes straightforward.

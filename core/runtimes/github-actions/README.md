@@ -13,7 +13,7 @@ reconcile/recovery button.
 5. **Manual entry point** — reconcile-everything and process-one-item runs.
 
 In Phase 1 each recipe ships its own workflow file conforming to this contract
-(see `automations/basecamp/board-agent/files/.github/workflows/`); Phase 3
+(see `automations/basecamp/project-agent/files/.github/workflows/`); Phase 3
 extracts the shared parts into templates here, alongside `gitlab-ci/`,
 `bitbucket/`, and `docker-server/` adapters.
 

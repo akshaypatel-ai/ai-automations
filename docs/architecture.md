@@ -9,7 +9,7 @@ TOOL → RELAY → RUNTIME → BRAIN → STATE → AUDIT
 
 | Layer | What it is | Phase 1 implementation |
 |---|---|---|
-| **Tool** | The event source + API of record (Basecamp, Jira, Linear, …) | `automations/basecamp/board-agent/` |
+| **Tool** | The event source + API of record (Basecamp, Jira, Linear, …) — every recipe covers **all** the tool's webhook events via toggleable handler families | `automations/basecamp/project-agent/` |
 | **Relay** | Webhook ingress: verify → filter → forward to the runtime trigger | Cloudflare Worker (in the recipe); contract in `core/relays/` |
 | **Runtime** | Where runs execute | GitHub Actions; contract in `core/runtimes/github-actions/` |
 | **Brain** | The AI: agentic CLI or raw API | `core/ai/claude-code.sh`; contract in `core/ai/README.md` |

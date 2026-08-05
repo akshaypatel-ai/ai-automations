@@ -1,15 +1,20 @@
-name: Basecamp Board Agent
+name: Basecamp Project Agent
 
 # Event-driven only (no cron): Basecamp webhook → Cloudflare Worker relay →
 # repository_dispatch → this workflow. workflow_dispatch is the manual
-# reconcile/recovery button (empty card_id = scan both watched columns).
+# reconcile/recovery button (empty item_id = scan watched columns/todolists
+# plus every tracked item).
 on:
   repository_dispatch:
     types: [ basecamp_event ]
   workflow_dispatch:
     inputs:
-      card_id:
-        description: 'Card ID to process (leave empty to reconcile all watched columns)'
+      item_id:
+        description: 'Item ID to process (leave empty to reconcile everything watched)'
+        required: false
+        default: ''
+      item_type:
+        description: 'Optional type hint (Kanban::Card, Todo, Message, Document, Upload, Question::Answer, Schedule::Entry)'
         required: false
         default: ''
 
@@ -17,10 +22,10 @@ permissions:
   contents: write
   pull-requests: write
 
-# One run per card at a time; queued runs are safe because every run processes
+# One run per item at a time; queued runs are safe because every run processes
 # "everything new since saved state", not just the event that woke it.
 concurrency:
-  group: basecamp-agent-${{ github.event.client_payload.card_id || inputs.card_id || 'reconcile' }}
+  group: basecamp-agent-${{ github.event.client_payload.item_id || inputs.item_id || 'reconcile' }}
   cancel-in-progress: false
 
 jobs:
@@ -79,7 +84,8 @@ jobs:
 
       - name: Run agent
         env:
-          CARD_ID: ${{ github.event.client_payload.card_id || inputs.card_id }}
+          ITEM_ID: ${{ github.event.client_payload.item_id || inputs.item_id }}
+          ITEM_TYPE: ${{ github.event.client_payload.item_type || inputs.item_type }}
           EVENT_KIND: ${{ github.event.client_payload.kind || 'manual' }}
         # Unset empty auth vars — an empty ANTHROPIC_API_KEY would shadow the
         # OAuth token in Claude Code's credential precedence.
