@@ -30,7 +30,8 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 | ✅ Telegram | Yes (bot API, dead simple) | **Built**: [`telegram/notify-agent`](../automations/telegram/notify-agent) |
 | WhatsApp Business | Yes (Cloud API) | Notify to founders/clients |
 | ✅ Google Chat | Space webhooks (outbound) | **Built**: [`googlechat/notify-agent`](../automations/googlechat/notify-agent) — inbound Q&A would need a Chat app |
-| Mattermost / Rocket.Chat | Yes | Self-hosted Slack twins — pairs with Docker-server runtime |
+| ✅ Mattermost | Yes (outgoing-webhook token) | **Built**: [`mattermost/notify-agent`](../automations/mattermost/notify-agent) |
+| Rocket.Chat | Yes | Self-hosted Slack twin — pairs with Docker-server runtime |
 
 ## Support & CRM (triage pattern: answer, escalate, summarize)
 

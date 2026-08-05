@@ -1,0 +1,17 @@
+name = "{{WORKER_NAME}}"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Secrets (set with `wrangler secret put`):
+#   GITHUB_PAT                 fine-grained PAT scoped to {{GITHUB_REPO}} only, contents: read+write
+#   MATTERMOST_OUTGOING_TOKEN  the token Mattermost shows when the outgoing webhook is created
+
+[vars]
+GITHUB_REPO = "{{GITHUB_REPO}}"
+# Fallback trigger word, stripped from questions when a delivery omits the
+# trigger_word field (Mattermost normally sends it).
+TRIGGER = "{{TRIGGER}}"
+# The agent's display name — posts by it or quoting it are dropped defensively
+# (bot-loop guard; the structural protection is Mattermost's own: webhook
+# posts never fire outgoing webhooks).
+AGENT_MARKER = "{{AGENT_NAME}}"
