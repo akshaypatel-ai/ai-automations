@@ -1,0 +1,51 @@
+# {{AGENT_NAME}} — Front Triage Agent (operations)
+
+Watches Front conversations and drafts grounded replies as INTERNAL
+comments — a human sends every customer-facing reply. Event-driven — no cron,
+no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Front rule ("Send to a webhook" — unsigned; the URL secret IS the auth)
+  → Cloudflare Worker relay            scripts/front-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/front-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output |
+|---|---|---|
+| New conversation | `triage` | ONE internal comment (draft reply + category); GitHub issue only for real bugs |
+| New message on a tracked conversation | `respond` | Updated internal comment — or silence when a teammate already replied |
+
+State lives on the orphan branch `front-agent-state` (`state/<conversation_id>.json`:
+phase, last_message_at, issue_url). Every run re-fetches truth from Front's
+API and diffs against it — webhook payloads are only doorbells. Agent comments
+are prefixed `{{AGENT_MARKER}} — ` for humans, but loop protection is
+STRUCTURAL: the agent writes COMMENTS, and the resolver counts only MESSAGES
+(customer traffic + teammate replies) for recency, so its own output can never
+ring its own doorbell. Recency is the message `created_at` — an epoch FLOAT,
+compared numerically in jq, never in bash.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Front Triage Agent* → *Run workflow* — empty `item_id` reconciles recent open conversations + tracked ones; a conversation id (`cnv_…`) processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/front-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** disable the rule(s) (Front → Settings → Rules) — no code change needed.
+
+## Local dry-run (safe — needs FRONT_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/front-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=cnv_XXXX bash scripts/front-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Front writes are **internal comments only** — `note.sh` posts to the `/comments` endpoint, a stream Front never sends to customers, so the agent is structurally unable to reply; a human sends every reply.
+- Never archives, assigns, or tags conversations — humans own the queue.
+- Never escalates twice: the GitHub issue URL is saved in state (`issue_url`); follow-ups comment on that issue instead of opening a new one.
+- No customer personal data (names, emails) in GitHub issues — describe, don't paste.
+- Rule webhooks are unsigned — the relay authenticates by the secret URL path; rotate `WEBHOOK_SECRET` (and every rule's URL) if it ever leaks. Hardening path: Front's signed application webhooks, once you're willing to build a developer app.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

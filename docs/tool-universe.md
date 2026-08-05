@@ -40,7 +40,7 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 | ✅ Intercom | Yes (X-Hub-Signature) | **Built**: [`intercom/triage-agent`](../automations/intercom/triage-agent) |
 | ✅ Freshdesk | Yes (automation webhooks, URL secret) | **Built**: [`freshdesk/triage-agent`](../automations/freshdesk/triage-agent) |
 | ✅ Help Scout | Yes (base64 HMAC-SHA1) | **Built**: [`helpscout/triage-agent`](../automations/helpscout/triage-agent) |
-| Front | Yes | Same shape |
+| ✅ Front | Yes (rule webhooks, URL secret) | **Built**: [`front/triage-agent`](../automations/front/triage-agent) |
 | HubSpot | Yes | CRM events → AI summaries/notify |
 | Linear Asks / Plain | Yes | Support-in-tracker hybrids |
 
