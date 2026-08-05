@@ -1,0 +1,10 @@
+{
+  "name": "GitLab Issues Agent",
+  "description": "Label-driven board flow on GitLab Issues — GitLab boards are label-driven, so labels are the native columns: label an issue for analysis → options and trade-offs in a comment; discuss; label it for implementation → ready-for-review PR on the paired GitHub repo. X-Gitlab-Token relay routes issue + note events.",
+  "tool": "gitlab",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["issues"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

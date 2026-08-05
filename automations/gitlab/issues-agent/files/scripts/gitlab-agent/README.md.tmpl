@@ -1,0 +1,54 @@
+# {{AGENT_NAME}} — GitLab Issues Agent (operations)
+
+Watches GitLab project **{{GITLAB_PROJECT_ID}}** on {{GITLAB_API_BASE}} and
+reacts to the **{{LABEL_ANALYZE}}** / **{{LABEL_IMPLEMENT}}** labels (GitLab
+boards are label-driven, so these are the board's native columns). The code
+and the agent's PRs live here on GitHub ({{GITHUB_REPO}}); GitLab is the
+tracker. Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+GitLab webhook (X-Gitlab-Token compared to the Secret token at the edge)
+  → Cloudflare Worker relay            scripts/gitlab-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/gitlab-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one GitLab comment) |
+|---|---|---|
+| Issue labeled **{{LABEL_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{LABEL_ANALYZE}} issue | `respond` | Answer / updated proposal / remaining questions |
+| Issue labeled **{{LABEL_IMPLEMENT}}** (or comment there) | `implement` | GitHub PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `gitlab-agent-state` (`state/<iid>.json`:
+labels, phase, last_note_id, branch, pr_url). Every run re-fetches truth from
+GitLab's REST API and diffs against it — webhook payloads are only doorbells.
+Agent comments are prefixed `{{AGENT_MARKER}} — `; the resolver and the relay
+both skip marker comments, and system notes (label changes arrive as
+`system: true` notes) are excluded so label noise never counts as human
+comments (loop protection). Note recency is tracked by the numeric note id
+(monotonic).
+
+## Operating
+
+- **Recover / backfill:** Actions → *GitLab Issues Agent* → *Run workflow* — empty `item_id` reconciles both watched labels + tracked issues; an issue iid processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/gitlab-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** disable the webhook: GitLab project → Settings → Webhooks.
+- **PR ↔ issue linkage:** merging a GitHub PR can't auto-close a GitLab issue — the PR body links the issue URL; close the issue by hand after merging.
+- **Known blind spot:** removing and re-applying a watched label the saved state already recorded won't re-run the playbook (the resolver diffs against state) — re-trigger with a comment or a manual run.
+
+## Local dry-run (safe — needs GITLAB_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/gitlab-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<issue_iid> bash scripts/gitlab-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Issue writes are **comments only** — the agent never labels, closes, assigns, or edits issues; humans own the tracker.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/gl-<iid>-<slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
+- The relay authenticates deliveries by comparing `X-Gitlab-Token` to the webhook's Secret token (GitLab doesn't sign payloads).

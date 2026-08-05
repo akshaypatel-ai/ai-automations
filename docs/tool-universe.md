@@ -13,7 +13,7 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 | ✅ Monday.com | Yes | **Built**: [`monday/project-agent`](../automations/monday/project-agent) |
 | ✅ Notion | Yes (webhooks, 2024+) | **Built**: [`notion/project-agent`](../automations/notion/project-agent) |
 | ✅ GitHub Issues | Native Actions triggers — **no relay needed** | **Built**: [`github/issues-agent`](../automations/github/issues-agent) |
-| ✦ GitLab Issues/Boards | Native CI triggers | Pairs with the GitLab runtime (Phase 3) |
+| ✅ GitLab Issues | Yes (project webhooks, X-Gitlab-Token) | **Built**: [`gitlab/issues-agent`](../automations/gitlab/issues-agent) |
 | Shortcut (ex-Clubhouse) | Yes | Story workflow states |
 | Height | Yes | API-first, Linear-like |
 | Todoist | Yes | Personal/small-team tasks |
