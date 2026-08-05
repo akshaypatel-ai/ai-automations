@@ -188,11 +188,15 @@ Core wizard lib + `basecamp/project-agent` on **GitHub Actions + Claude Code** (
 Order: **Linear** (best API — validates that the project-agent core is truly reusable) → **Jira** → **Trello** → **ClickUp** → **Slack triage-agent** (new pattern) → **LINE notify**.
 *Done when: each recipe passes the same 15-minute stranger test.*
 
-Status: **all seven recipes are built** — Basecamp (stable, production-proven
-pattern) plus Linear, Jira, Trello, ClickUp, Slack, and LINE (beta: built and
-smoke-tested; each recipe README carries its live-fire checklist). The
-candidate map for tools beyond these seven lives in
-[tool-universe.md](tool-universe.md).
+Status: **sixteen recipes are built** — Basecamp (stable, production-proven
+pattern) plus fifteen beta recipes (built and smoke-tested; each recipe
+README carries its live-fire checklist): the original wave (Linear, Jira,
+Trello, ClickUp, Slack, LINE) and the tool-universe expansion wave —
+GitHub Issues (relay-free), Asana, Monday.com, Notion (project-agents),
+Discord, Microsoft Teams (notify-agents), Zendesk, Intercom, Sentry
+(triage-agents). The candidate map for what's next lives in
+[tool-universe.md](tool-universe.md) — strongest remaining: Telegram,
+Airtable, GitLab Issues.
 
 **Phase 5 — Public polish** · size S-M
 `./setup.sh doctor` (validate an install: deps, secrets present, webhook reachable), CI for the repo itself (shellcheck + installer smoke tests in containers), issue templates, demo GIF/video, launch README.

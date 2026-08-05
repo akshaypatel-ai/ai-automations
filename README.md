@@ -26,8 +26,17 @@ board — via toggleable per-event handlers you pick at install time.
 | [`clickup/project-agent`](automations/clickup/project-agent) | ClickUp | Board flow via status changes; HMAC-verified relay routes all webhook events. | 🧪 Beta |
 | [`slack/triage-agent`](automations/slack/triage-agent) | Slack | Answers mentions/DMs from the repo, triages channels, escalates bugs as issues; signed Events API relay with 3s ack. | 🧪 Beta |
 | [`line/notify-agent`](automations/line/notify-agent) | LINE | AI-written ship/incident notifications (GitHub-native triggers, no relay) + group Q&A. | 🧪 Beta |
+| [`github/issues-agent`](automations/github/issues-agent) | GitHub Issues | Label-driven board flow (analyze → discuss → PR) — the relay-free recipe: native Actions triggers, no webhook, no extra token. | 🧪 Beta |
+| [`asana/project-agent`](automations/asana/project-agent) | Asana | Board flow via sections; relay handles the X-Hook-Secret handshake + HMAC and routes all webhook events. | 🧪 Beta |
+| [`monday/project-agent`](automations/monday/project-agent) | Monday.com | Board flow via a status column over GraphQL; challenge-echo relay routes all board events. | 🧪 Beta |
+| [`notion/project-agent`](automations/notion/project-agent) | Notion | Board flow on a database's status property; signature-verified relay routes all webhook events. | 🧪 Beta |
+| [`discord/notify-agent`](automations/discord/notify-agent) | Discord | AI-written ship/incident notifications (channel webhook, no relay) + `/ask` slash command via Ed25519-verified interactions. | 🧪 Beta |
+| [`teams/notify-agent`](automations/teams/notify-agent) | Microsoft Teams | AI-written ship/incident notifications (channel webhook, no relay) + @mention Q&A via signed outgoing webhook. | 🧪 Beta |
+| [`zendesk/triage-agent`](automations/zendesk/triage-agent) | Zendesk | Ticket triage: grounded draft replies as internal notes (humans send), bugs escalated as GitHub issues. | 🧪 Beta |
+| [`intercom/triage-agent`](automations/intercom/triage-agent) | Intercom | Conversation triage: grounded draft replies as internal notes, bugs escalated as GitHub issues. | 🧪 Beta |
+| [`sentry/triage-agent`](automations/sentry/triage-agent) | Sentry | Error alerts become root-cause sketches filed as GitHub issues; recurrences update the same issue. | 🧪 Beta |
 
-**Statuses**: ✅ production-proven pattern · 🧪 built and smoke-tested, needs live-fire testing against the real service (each recipe README carries its checklist). Beyond these seven, [docs/tool-universe.md](docs/tool-universe.md) maps 30+ more candidate tools (Asana, Monday, Notion, GitHub Issues, Discord, Teams, Zendesk, Intercom, Sentry, …) with their webhook capabilities.
+**Statuses**: ✅ production-proven pattern · 🧪 built and smoke-tested, needs live-fire testing against the real service (each recipe README carries its checklist). Beyond these sixteen, [docs/tool-universe.md](docs/tool-universe.md) maps 20+ more candidate tools (Telegram, Airtable, Confluence, Figma, PagerDuty, GitLab, Azure DevOps, …) with their webhook capabilities.
 
 Want a recipe sooner — or a tool that isn't listed? [Open an issue](../../issues) or contribute it: the recipe contract in [CONTRIBUTING.md](CONTRIBUTING.md) makes new recipes straightforward.
 

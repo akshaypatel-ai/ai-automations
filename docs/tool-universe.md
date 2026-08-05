@@ -1,33 +1,33 @@
 # Tool universe — where these agents can live next
 
-The candidate map beyond the first seven tools. Criteria: does the tool have
+The candidate map beyond the built recipes. Criteria: does the tool have
 **webhooks** (event-driven, our architecture's requirement), a **write API**
-for comments/replies, and a real team audience? ✦ marks the strongest
-near-term candidates.
+for comments/replies, and a real team audience? ✅ marks tools that now have
+a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 
 ## Project & task management (the project-agent pattern ports directly)
 
 | Tool | Webhooks | Notes |
 |---|---|---|
-| ✦ Asana | Yes (X-Hook-Secret handshake, HMAC) | Huge install base; tasks/sections map to the board flow |
-| ✦ Monday.com | Yes | GraphQL API; status-column flow |
-| ✦ Notion | Yes (webhooks, 2024+) | Databases as boards; comments API |
-| ✦ GitHub Issues/Projects | Native Actions triggers — **no relay needed** | The cheapest recipe to build; huge audience |
-| GitLab Issues/Boards | Native CI triggers | Pairs with the GitLab runtime (Phase 3) |
+| ✅ Asana | Yes (X-Hook-Secret handshake, HMAC) | **Built**: [`asana/project-agent`](../automations/asana/project-agent) |
+| ✅ Monday.com | Yes | **Built**: [`monday/project-agent`](../automations/monday/project-agent) |
+| ✅ Notion | Yes (webhooks, 2024+) | **Built**: [`notion/project-agent`](../automations/notion/project-agent) |
+| ✅ GitHub Issues | Native Actions triggers — **no relay needed** | **Built**: [`github/issues-agent`](../automations/github/issues-agent) |
+| ✦ GitLab Issues/Boards | Native CI triggers | Pairs with the GitLab runtime (Phase 3) |
 | Shortcut (ex-Clubhouse) | Yes | Story workflow states |
 | Height | Yes | API-first, Linear-like |
 | Todoist | Yes | Personal/small-team tasks |
 | Wrike, Teamwork, Zoho Projects | Yes | Enterprise long tail |
-| Airtable | Yes | Bases as boards; strong automation audience |
+| ✦ Airtable | Yes | Bases as boards; strong automation audience |
 | Azure DevOps (Boards) | Yes (service hooks) | Enterprise; pairs with Pipelines runtime |
 
 ## Chat & messaging (triage/notify patterns)
 
 | Tool | Webhooks | Notes |
 |---|---|---|
-| ✦ Discord | Yes (interactions + gateway; outbound webhooks trivial) | Dev-community heavy; bot Q&A + ship notifications |
-| ✦ Microsoft Teams | Yes (Graph subscriptions / outgoing webhooks) | Enterprise Slack twin |
-| Telegram | Yes (bot API, dead simple) | Notify + Q&A bots |
+| ✅ Discord | Yes (interactions + outbound webhooks) | **Built**: [`discord/notify-agent`](../automations/discord/notify-agent) |
+| ✅ Microsoft Teams | Yes (outgoing + incoming webhooks) | **Built**: [`teams/notify-agent`](../automations/teams/notify-agent) |
+| ✦ Telegram | Yes (bot API, dead simple) | Notify + Q&A bots — cheapest remaining chat recipe |
 | WhatsApp Business | Yes (Cloud API) | Notify to founders/clients |
 | Google Chat | Yes | Workspace shops |
 | Mattermost / Rocket.Chat | Yes | Self-hosted Slack twins — pairs with Docker-server runtime |
@@ -36,8 +36,8 @@ near-term candidates.
 
 | Tool | Webhooks | Notes |
 |---|---|---|
-| ✦ Zendesk | Yes | Ticket triage: draft grounded replies, escalate bugs to the tracker |
-| ✦ Intercom | Yes | Same shape, product-led companies |
+| ✅ Zendesk | Yes (signed webhooks + triggers) | **Built**: [`zendesk/triage-agent`](../automations/zendesk/triage-agent) |
+| ✅ Intercom | Yes (X-Hub-Signature) | **Built**: [`intercom/triage-agent`](../automations/intercom/triage-agent) |
 | Freshdesk / Help Scout / Front | Yes | Same shape |
 | HubSpot | Yes | CRM events → AI summaries/notify |
 | Linear Asks / Plain | Yes | Support-in-tracker hybrids |
@@ -55,7 +55,7 @@ near-term candidates.
 
 | Tool | Trigger | Notes |
 |---|---|---|
-| ✦ Sentry | Yes (issue alerts) | Error → AI root-cause sketch → tracker issue with repro |
+| ✅ Sentry | Yes (internal-integration webhooks) | **Built**: [`sentry/triage-agent`](../automations/sentry/triage-agent) |
 | PagerDuty / Opsgenie | Yes | Incident summaries to chat |
 | CircleCI / Buildkite / Jenkins | Yes | Failure triage: AI reads the log, comments the likely cause |
 | Vercel / Netlify / Railway | Yes (deploy hooks) | Deploy notes to chat |
