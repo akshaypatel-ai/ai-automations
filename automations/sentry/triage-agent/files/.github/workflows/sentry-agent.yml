@@ -1,0 +1,93 @@
+name: Sentry Triage Agent
+
+# Event-driven only (no cron): Sentry issue alert → Cloudflare Worker relay →
+# repository_dispatch → this workflow. workflow_dispatch is the manual
+# reconcile/recovery button (empty item_id = scan unresolved issues + tracked items).
+on:
+  repository_dispatch:
+    types: [ sentry_event ]
+  workflow_dispatch:
+    inputs:
+      item_id:
+        description: 'Sentry issue id; empty = reconcile everything watched'
+        required: false
+        default: ''
+      item_type:
+        description: 'Optional type hint (Issue)'
+        required: false
+        default: 'Issue'
+
+permissions:
+  contents: write
+  issues: write
+
+# One run per item at a time; queued runs are safe because every run processes
+# "everything new since saved state", not just the event that woke it.
+concurrency:
+  group: sentry-agent-${{ github.event.client_payload.item_id || inputs.item_id || 'reconcile' }}
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Prefer a PAT: issues filed with the built-in GITHUB_TOKEN are authored
+      # by github-actions[bot] and never trigger issue-event workflows.
+      GH_TOKEN: ${{ secrets.AGENT_GH_PAT || secrets.GITHUB_TOKEN }}
+      # Auth for the AI brain: set ONE of these secrets. CLAUDE_CODE_OAUTH_TOKEN
+      # (from `claude setup-token`, Pro/Max subscription) or ANTHROPIC_API_KEY
+      # (pay-per-token). If both are set, the API key wins.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      SENTRY_TOKEN: ${{ secrets.SENTRY_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Same PAT for git pushes (the state branch), for a consistent author.
+          token: ${{ secrets.AGENT_GH_PAT || github.token }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check Sentry auth
+        run: |
+          [ -n "$SENTRY_TOKEN" ] || { echo "::error::Set repo secret SENTRY_TOKEN (the Internal Integration's token, or a user auth token, with project:read + event:read)."; exit 1; }
+          source scripts/sentry-agent/env.sh
+          bash scripts/sentry-agent/api.sh GET "/organizations/$SENTRY_ORG/" | jq -e '.slug' >/dev/null
+          echo "Sentry auth OK"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run agent
+        env:
+          ITEM_ID: ${{ github.event.client_payload.item_id || inputs.item_id }}
+          ITEM_TYPE: ${{ github.event.client_payload.item_type || inputs.item_type }}
+          EVENT_KIND: ${{ github.event.client_payload.kind || 'manual' }}
+        # Unset empty auth vars — an empty ANTHROPIC_API_KEY would shadow the
+        # OAuth token in Claude Code's credential precedence.
+        run: |
+          # Trim whitespace pasted into the secrets; a stray space breaks the bearer token.
+          ANTHROPIC_API_KEY="$(printf '%s' "${ANTHROPIC_API_KEY:-}" | tr -d '[:space:]')"
+          CLAUDE_CODE_OAUTH_TOKEN="$(printf '%s' "${CLAUDE_CODE_OAUTH_TOKEN:-}" | tr -d '[:space:]')"
+          [ -z "$ANTHROPIC_API_KEY" ] && unset ANTHROPIC_API_KEY
+          [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && unset CLAUDE_CODE_OAUTH_TOKEN
+          if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::Set repo secret CLAUDE_CODE_OAUTH_TOKEN (subscription) or ANTHROPIC_API_KEY (API billing)."
+            exit 1
+          fi
+          bash scripts/sentry-agent/agent-run.sh
+
+      - name: Upload agent output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-output-${{ github.run_id }}
+          path: .agent-out/
+          if-no-files-found: ignore

@@ -1,0 +1,51 @@
+# {{AGENT_NAME}} — Sentry Triage Agent (operations)
+
+Watches Sentry project `{{SENTRY_ORG}}/{{SENTRY_PROJECT}}` and turns error
+alerts into grounded GitHub issues. Event-driven — no cron, no servers to
+maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Sentry issue alert (hex HMAC-SHA256 verified via sentry-hook-signature)
+  → Cloudflare Worker relay            scripts/sentry-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/sentry-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (GitHub only — Sentry is never written) |
+|---|---|---|
+| Alert for an untracked Sentry issue | `analyze` | ONE GitHub issue labeled `{{ISSUE_LABEL}}`: error, impact, likely cause (code-verified), where to look, permalink |
+| Alert again + the event count grew | `update` | ONE comment on the existing GitHub issue with the fresh numbers |
+
+State lives on the orphan branch `sentry-agent-state`
+(`state/<sentry_issue_id>.json`: phase, gh_issue_url, last_event_count).
+Every run re-fetches truth from Sentry's API and diffs against it — webhook
+payloads are only doorbells. Recurrence detection is count-based: the resolver
+compares the issue's current event count against `last_event_count` from the
+last run, so one Sentry issue maps to one GitHub issue forever. Issue bodies
+and comments end with the `{{AGENT_MARKER}}` footer. Resolved/ignored Sentry
+issues are skipped — humans settled those.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Sentry Triage Agent* → *Run workflow* — empty `item_id` reconciles the 25 most recently active unresolved issues + tracked ones; a Sentry issue id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/sentry-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** remove the "Send a notification via …" action from the alert rule(s) (Alerts → edit rule) — the integration and relay can stay deployed.
+- **Known blind spot:** recurrence is only noticed when another delivery (or manual run) arrives — alert rules with long cooldowns delay the update comment; the reconcile button catches up.
+
+## Local dry-run (safe — needs SENTRY_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/sentry-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<sentry_issue_id> bash scripts/sentry-agent/agent-run.sh
+```
+
+## Guardrails
+
+- ONE GitHub issue per Sentry issue, ever — recurrences are comments on it; closed issues get a "recurring" comment, never a reopen.
+- Sentry access is READ-ONLY (`project:read` + `event:read`) — the agent never resolves, ignores, assigns, or comments on the Sentry side.
+- No PII from event payloads: user emails/IPs never reach GitHub — impact is described numerically.
+- Never writes code — git stays clean apart from the state branch.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

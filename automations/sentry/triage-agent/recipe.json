@@ -1,0 +1,10 @@
+{
+  "name": "Sentry Triage Agent",
+  "description": "Turns Sentry error alerts into grounded root-cause sketches filed as GitHub issues: fetches the issue + latest stack trace, reads the repo at the crash sites, files ONE issue per Sentry issue, and comments fresh numbers on recurrence. Signed-webhook relay; the issues handler is fully implemented.",
+  "tool": "sentry",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["issues"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}
