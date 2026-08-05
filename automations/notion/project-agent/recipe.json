@@ -1,0 +1,10 @@
+{
+  "name": "Notion Project Agent",
+  "description": "Watches a Notion database: analyzes pages entering your analyze status, discusses in page comments, and implements pages moved to your build status as ready-for-review PRs. Relay verifies X-Notion-Signature and routes all webhook events; the pages handler is fully implemented.",
+  "tool": "notion",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["pages", "databases"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

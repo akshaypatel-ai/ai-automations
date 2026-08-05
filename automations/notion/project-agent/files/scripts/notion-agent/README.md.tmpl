@@ -1,0 +1,49 @@
+# {{AGENT_NAME}} — Notion Project Agent (operations)
+
+Watches Notion database `{{NOTION_DATABASE_ID}}` and reacts to page activity.
+Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Notion webhook (X-Notion-Signature, HMAC-SHA256 keyed with the verification token)
+  → Cloudflare Worker relay            scripts/notion-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/notion-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one Notion comment) |
+|---|---|---|
+| Page enters **{{STATUS_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{STATUS_ANALYZE}} page | `respond` | Answer / updated proposal / remaining questions |
+| Page enters **{{STATUS_IMPLEMENT}}** (or comment there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `notion-agent-state` (`state/<page_id>.json`:
+status_name, phase, last_comment_at, branch, pr_url). Notion events are
+compact (entity id + type, no content), so every run re-fetches truth from
+the API and diffs against saved state — payloads are only doorbells. Agent
+comments are prefixed `{{AGENT_MARKER}} — `; the resolver skips marker
+comments (loop protection). Comment recency is tracked by `created_time`
+(ISO-8601). Page **content** edits are dropped at the edge — after editing a
+page body, add a comment (or run manually) to re-trigger.
+
+## Operating
+
+- **Recover / backfill:** Actions → *Notion Project Agent* → *Run workflow* — empty `item_id` reconciles both watched statuses + tracked pages; a page id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/notion-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** disable (or delete) the webhook subscription in the integration settings (notion.so/profile/integrations → your integration → Webhooks).
+- **Known blind spot:** moving a page back into a watched status silently — re-trigger with a comment or a manual run.
+
+## Local dry-run (safe — needs NOTION_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/notion-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<page_id> bash scripts/notion-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Notion writes are **comments only** — the agent never changes the status property, never edits page bodies, never touches other properties; humans own the board.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<kebab-slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
