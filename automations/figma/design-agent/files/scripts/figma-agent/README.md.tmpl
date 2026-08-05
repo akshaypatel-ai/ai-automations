@@ -1,0 +1,48 @@
+# {{AGENT_NAME}} — Figma Design Agent (operations)
+
+Repo-grounded Q&A for {{PROJECT_NAME}} on Figma design comments. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+comment "{{TRIGGER}} …" on a design → FILE_COMMENT webhook (passcode in body)
+  → Cloudflare relay (trigger gate) → repository_dispatch → GitHub Actions
+  → headless Claude Code reads the repo → reply.sh (ONE reply to the thread root)
+```
+
+| Handler | Trigger | Output (one thread reply) |
+|---|---|---|
+| comments | Comment starting with `{{TRIGGER}}` (passcode-verified webhook → relay) | Repo-grounded answer in the same thread; silence for everything else |
+
+Enabled: **{{HANDLERS}}**. File scope: `{{WATCHED_FILE}}` (empty = every file
+the webhook's team emits). Stateless — each summon is one Q&A round-trip;
+there's no state branch. Replies always target the thread's ROOT comment
+(Figma nests one level only) and are capped defensively at 3900 chars.
+
+## Operating
+
+- **Manual test:** Actions → *Figma Design Agent* → *Run workflow* → a question + file key + root comment id (any comment's id works for a fresh thread).
+- **Transcripts:** every run uploads `.agent-out/` (prompt with gathered thread, AI transcript) as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/figma-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** disable the workflow in the Actions UI, or delete the webhook:
+  `curl -X DELETE -H "X-Figma-Token: <TOKEN>" https://api.figma.com/v2/webhooks/<webhook_id>`
+  (list them via `GET https://api.figma.com/v2/webhooks?context=team&context_id=<team_id>`).
+- **Trigger prefix / file scope:** `TRIGGER` and `WATCHED_FILE` — change them in BOTH `scripts/figma-agent/env.sh` and `relay/wrangler.toml`, then `wrangler deploy` (the relay is where the gate actually runs).
+
+## Local dry-run (no AI, no reply)
+
+```bash
+# export FIGMA_TOKEN first for live thread context; without it the prompt
+# still assembles with "(thread unavailable)".
+DRY_RUN=1 MODE=ask ASK_TEXT="is the new checkout built?" FILE_KEY=<key> ROOT_ID=<comment-id> \
+  bash scripts/figma-agent/agent-run.sh
+```
+
+## Guardrails
+
+- ONE reply per summon, always to the thread root; comments are the only write surface — the agent never edits designs, never resolves threads, never writes code.
+- Trigger-prefix summons: comments not starting with `{{TRIGGER}}` are dropped at the relay — a busy design file never wakes CI.
+- Passcode-in-body verification: Figma v2 webhooks carry no HMAC, only the creation passcode echoed in every delivery — keep `FIGMA_PASSCODE` long and random; mismatches get a 401 at the edge.
+- Loop-proof: replies are posted by the token owner's account and echo back through the webhook — the `{{AGENT_MARKER}}` marker drops them at the relay.
+- Answers state only what was verified in the repo — "I couldn't find that in the repo" over guessing.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.

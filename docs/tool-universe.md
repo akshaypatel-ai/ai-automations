@@ -48,7 +48,7 @@ a recipe in `automations/`; ✦ marks the strongest remaining candidates.
 |---|---|---|
 | ✅ Confluence | Automation rules → web request (no Cloud admin webhooks) | **Built**: [`confluence/docs-agent`](../automations/confluence/docs-agent) |
 | Google Drive/Docs | Yes (Drive API push) | Watch a specs folder |
-| Figma | Yes (file/comment events) | Design-comment Q&A; dev-handoff checks |
+| ✅ Figma | Yes (v2 webhooks, passcode) | **Built**: [`figma/design-agent`](../automations/figma/design-agent) |
 | Miro | Yes | Board comments |
 
 ## Dev infrastructure (notify/report patterns, mostly relay-free)

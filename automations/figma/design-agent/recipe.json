@@ -1,0 +1,10 @@
+{
+  "name": "Figma Design Agent",
+  "description": "Repo-grounded Q&A on Figma design comments: prefix a comment with a trigger (default @ai) and the agent answers in the same thread from what the code actually does — is it built, how does it behave, how hard is the change. Passcode-verified v2 webhooks.",
+  "tool": "figma",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["comments"],
+  "requires": ["git", "jq", "gh", "curl"]
+}
