@@ -1,0 +1,10 @@
+{
+  "name": "Intercom Triage Agent",
+  "description": "Triages Intercom conversations: drafts grounded reply suggestions as INTERNAL notes (humans send the actual reply), answers follow-ups, and escalates real bugs as GitHub issues. Signed-webhook relay; the conversations handler is fully implemented.",
+  "tool": "intercom",
+  "status": "beta",
+  "runtime": "github-actions",
+  "brains": ["claude-code"],
+  "handlers": ["conversations"],
+  "requires": ["git", "jq", "gh", "curl", "wrangler"]
+}

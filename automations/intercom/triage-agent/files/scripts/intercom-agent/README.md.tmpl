@@ -1,0 +1,49 @@
+# {{AGENT_NAME}} — Intercom Triage Agent (operations)
+
+Watches Intercom conversations and drafts grounded replies as INTERNAL
+notes — a human sends every customer-facing reply. Event-driven — no cron, no
+servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (answers saved in `automation.config.json`).
+
+```
+Intercom webhook (signed: X-Hub-Signature = "sha1=" + hex HMAC-SHA1 of the body)
+  → Cloudflare Worker relay            scripts/intercom-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/intercom-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output |
+|---|---|---|
+| New conversation | `triage` | ONE internal note (draft reply + category); GitHub issue only for real bugs |
+| New customer reply on a tracked conversation | `respond` | Updated internal note — or silence when a human already handled it |
+
+State lives on the orphan branch `intercom-agent-state` (`state/<conversation_id>.json`:
+phase, last_part_at, issue_url). Every run re-fetches truth from Intercom's
+API and diffs against it — webhook payloads are only doorbells. Agent notes
+are prefixed `{{AGENT_MARKER}} — `; the relay drops the agent's own note echo
+(`conversation.admin.noted`) and the resolver counts only customer parts, with
+recency tracked by part `created_at` (epoch seconds — part ids are strings, so
+ordering by id is unsafe).
+
+## Operating
+
+- **Recover / backfill:** Actions → *Intercom Triage Agent* → *Run workflow* — empty `item_id` reconciles recent open conversations + tracked ones; a conversation id processes one.
+- **Transcripts:** every run uploads `.agent-out/` as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/intercom-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause:** Developer Hub → your app → Webhooks → unsubscribe the conversation topics (or clear the endpoint URL) — no code change needed.
+
+## Local dry-run (safe — needs INTERCOM_TOKEN exported)
+
+```bash
+DRY_RUN=1 bash scripts/intercom-agent/agent-run.sh                 # reconcile scan
+DRY_RUN=1 ITEM_ID=<conversation_id> bash scripts/intercom-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Intercom writes are **internal notes only** — `note.sh` hardcodes `message_type: "note"` (admin id resolved from `GET /me` at runtime), so the agent is structurally unable to message customers; a human sends every reply.
+- Never closes, assigns, or snoozes conversations — humans own the inbox.
+- Never escalates twice: the GitHub issue URL is saved in state (`issue_url`); follow-ups comment on that issue instead of opening a new one.
+- No customer personal data (names, emails) in GitHub issues — describe, don't paste.
+- `--dangerously-skip-permissions` only inside the disposable CI runner; local runs are `DRY_RUN` and stop before any AI call.
