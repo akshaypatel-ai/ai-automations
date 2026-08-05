@@ -1,0 +1,49 @@
+# {{AGENT_NAME}} — Jira Project Agent (operations)
+
+Watches Jira project **{{JIRA_PROJECT_KEY}}** on {{JIRA_SITE}} and reacts to issue activity.
+Event-driven — no cron, no servers to maintain. Installed by
+[ai-automations](https://github.com/makasanaakshay/ai-automation-master);
+re-run its installer to update (your answers are saved in `automation.config.json`).
+
+```
+Jira webhook (URL-secret authenticated, JQL-filtered)
+  → Cloudflare Worker relay            scripts/jira-agent/relay/worker.js
+  → repository_dispatch                .github/workflows/jira-agent.yml
+  → agent-run.sh                       restore state → resolve → playbook → save state
+```
+
+| Trigger | Playbook | Output (one Jira comment) |
+|---|---|---|
+| Issue enters **{{STATUS_ANALYZE}}** | `analyze` | Options + trade-offs + recommendation, or numbered questions |
+| Human comment on a {{STATUS_ANALYZE}} issue | `respond` | Answer / updated proposal / remaining questions |
+| Issue enters **{{STATUS_IMPLEMENT}}** (or comment there) | `implement` | PR into `{{PR_BASE}}` — or questions if unclear |
+
+State lives on the orphan branch `jira-agent-state` (`state/<issue_key>.json`:
+status_name, phase, last_comment_id, branch, pr_url). Every run re-fetches truth
+from Jira's REST API and diffs against it — webhook payloads are only
+doorbells, so duplicate or stale events are harmless. Agent comments are
+prefixed `{{AGENT_MARKER}} — `; the resolver and the relay both skip
+marker-prefixed comments (loop protection). Comment recency is tracked by
+numeric comment ids (increasing).
+
+## Operating
+
+- **Recover from a missed webhook / backfill an issue:** Actions → *Jira Project Agent* → *Run workflow* — empty `item_id` reconciles both watched states plus every tracked issue; a specific issue key (e.g. `NOVA-123`) processes one.
+- **Transcripts:** every run uploads `.agent-out/` (prompt, full AI transcript, result JSON) as an artifact.
+- **Model:** `CLAUDE_MODEL` in `scripts/jira-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Pause the agent:** disable the webhook: Jira → Settings → System → WebHooks.
+- **Known blind spot:** moving an issue back into a watched state *without saying anything* may be filtered at the edge — re-trigger with a comment or a manual run.
+
+## Local dry-run (safe: no comments, no AI, no state push — needs JIRA_EMAIL + JIRA_API_TOKEN)
+
+```bash
+DRY_RUN=1 bash scripts/jira-agent/agent-run.sh                  # reconcile scan
+DRY_RUN=1 ITEM_ID=<NOVA-123> bash scripts/jira-agent/agent-run.sh
+```
+
+## Guardrails
+
+- Jira writes are **comments only** — the agent never changes state, assignee, labels, or priority; humans own the board.
+- PRs are **always against `{{PR_BASE}}`** (branch `{{BRANCH_PREFIX}}/<key>-<slug>`); the agent never merges and never pushes to `{{PR_BASE}}` directly.
+- `--dangerously-skip-permissions` is used only inside the disposable CI runner, never locally (local runs are `DRY_RUN` and stop before any AI call).
+- The relay authenticates deliveries via the secret in the webhook URL (Jira admin webhooks don't sign payloads).
