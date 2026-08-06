@@ -34,14 +34,43 @@ The relay then POSTs to
 with a `custom: agent` selector and `ITEM_ID` / `ITEM_TYPE` / `EVENT_KIND`
 variables (plus the ask/notify extras when present).
 
+## PR / issue write-back via the `gh` shim (experimental)
+
+Playbooks speak the `gh` CLI; on Bitbucket the
+[`gh-shim-bitbucket.sh`](../../hosts/gh-shim-bitbucket.sh) host shim
+(installed on PATH *as* `gh`) translates the exact surface they use into
+Bitbucket REST 2.0 calls — so `implement` (pull requests) and repo-issue
+escalation now work here too. Install once in your clone:
+
+```sh
+mkdir -p scripts/gh-shim
+cp <ai-automations>/core/hosts/gh-shim-bitbucket.sh scripts/gh-shim/gh
+chmod +x scripts/gh-shim/gh
+```
+
+and add to the step's `script:` in `bitbucket-pipelines.yml`, before
+`agent-run.sh`:
+
+```yaml
+- export PATH="$BITBUCKET_CLONE_DIR/scripts/gh-shim:$PATH"
+```
+
+Auth: a repo/workspace access token with `pullrequest:write` +
+`issue:write`, set as a secured repository variable `BITBUCKET_TOKEN` (keep
+it separate from the relay's `pipeline:write` token — least scope each).
+`BITBUCKET_WORKSPACE` / `BITBUCKET_REPO_SLUG` are set by Pipelines
+automatically. Caveats: escalation needs the repo's **issue tracker
+enabled** (Repository settings → Issue tracker — issue creation 404s
+otherwise), and Bitbucket issues have **no labels** — the shim folds
+`--label` into a `[label] ` title prefix, which the playbooks' dedupe greps
+still match. Full translation table:
+[`core/hosts/README.md`](../../hosts/README.md).
+
 ## Honest limits of v1
 
-- **No `gh` equivalent here yet**: Bitbucket write-back (PRs, issue
-  comments) has no shim, so run **analyze / respond / triage-note flows
-  only** — playbooks whose write path is the *tool's* API (comments on the
-  ClickUp task, the Zendesk ticket, …) work fully; `implement` (pull
-  requests) and repo-issue escalation are future host-adapter work
-  (Phase 3b, remaining).
+- **`gh` write-back is a shim, not parity** — the exact playbook surface
+  only; treat `implement` and escalation on Bitbucket as **experimental**
+  until first-class host adapters ship (Phase 3b, remaining).
 - **The relay is required** — there's no relay-less trigger-token mode like
   GitLab's; treat the repository access token like any other secret (scope it
   to `pipeline:write` only).

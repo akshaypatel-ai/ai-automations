@@ -229,8 +229,12 @@ cap: analyze/respond/triage yes, `implement` no) and deployment docs for
 running the docker-server receiver unchanged on Cloud Run (direct
 tool→receiver webhooks, 60-min timeout) and Fly.io (always-on micro), with
 a per-run cost table and the ~150-long-runs/month VPS crossover.
-Remaining 3b: first-class host adapters only (native PR/issue write-back on
-GitLab/Bitbucket — glab, Bitbucket API — instead of the shim).
+The host-adapter layer is complete: gh→glab and gh→Bitbucket shims
+(`core/hosts/`) cover the exact surface the playbooks use, tested offline,
+loudly bounded (exit 64 beyond it), and honestly labeled experimental until
+live-fired. **Phases 3 and 3b are done.** What remains across the whole plan
+is live-fire testing only: graduating beta recipes, shims, and non-default
+brains/runtimes to stable against real workspaces.
 
 **Phase 4 — More tools** · size M per tool
 Order: **Linear** (best API — validates that the project-agent core is truly reusable) → **Jira** → **Trello** → **ClickUp** → **Slack triage-agent** (new pattern) → **LINE notify**.
