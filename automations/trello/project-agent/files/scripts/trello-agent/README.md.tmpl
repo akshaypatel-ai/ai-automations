@@ -29,7 +29,7 @@ by action `date`.
 
 - **Recover / backfill:** Actions → *Trello Project Agent* → *Run workflow* — empty `item_id` reconciles both watched lists + tracked cards; a card id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/trello-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/trello-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** `api.sh PUT "/1/webhooks/<webhook_id>?active=false"` (list them: `api.sh GET "/1/tokens/<token>/webhooks"`).
 - **Known blind spot:** moving a card back into a watched list silently — re-trigger with a comment or a manual run.
 

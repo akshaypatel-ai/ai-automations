@@ -8,6 +8,7 @@ ROOT="$(cd "$RECIPE_DIR/../../.." && pwd)"
 FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
+source "$ROOT/core/lib/brains.sh"
 
 need git jq curl
 
@@ -61,7 +62,8 @@ ask BRANCH_PREFIX "Branch prefix for agent branches" "$(d branch_prefix 'ai-agen
 default_base="$(git -C "$TARGET" symbolic-ref --short HEAD 2>/dev/null || echo main)"
 ask PR_BASE "Base branch for agent PRs" "$(d pr_base "$default_base")"
 ask_opt QA_COMMAND "Quick QA command before a PR (e.g. 'npm run lint')" "$(d qa_command '')"
-ask CLAUDE_MODEL "Claude model" "$(d claude_model 'claude-sonnet-5')"
+choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
+ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
 
 if [[ -n "$QA_COMMAND" ]]; then
   QA_NOTE="Quick check only: run \`$QA_COMMAND\` and fix what it flags. Do NOT run the full test suite or heavy tooling in this runner — that happens in the PR's CI."
@@ -79,7 +81,7 @@ cat <<EOF
   Jira               $JIRA_SITE · project $JIRA_PROJECT_KEY
   Analyze status     $STATUS_ANALYZE
   Implement status   $STATUS_IMPLEMENT
-  Agent              $AGENT_MARKER · brain claude-code · model $CLAUDE_MODEL
+  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL
   Branches           $BRANCH_PREFIX/<key>-<slug> → PRs into $PR_BASE
   Quick QA           ${QA_COMMAND:-none (PR CI only)}
   Relay worker       $WORKER_NAME
@@ -87,7 +89,7 @@ EOF
 confirm "Install into $TARGET?" || { echo "aborted — nothing written"; exit 1; }
 
 say "Installing files"
-RENDER_VARS="GITHUB_REPO HANDLERS JIRA_SITE JIRA_PROJECT_KEY STATUS_ANALYZE STATUS_IMPLEMENT AGENT_NAME AGENT_MARKER PROJECT_NAME AUDIENCE STACK_NOTE BRANCH_PREFIX PR_BASE QA_NOTE CLAUDE_MODEL WORKER_NAME"
+RENDER_VARS="GITHUB_REPO HANDLERS JIRA_SITE JIRA_PROJECT_KEY STATUS_ANALYZE STATUS_IMPLEMENT AGENT_NAME AGENT_MARKER PROJECT_NAME AUDIENCE STACK_NOTE BRANCH_PREFIX PR_BASE QA_NOTE BRAIN_NAME AI_MODEL WORKER_NAME"
 
 (cd "$FILES" && find . -type f ! -name '.DS_Store' | sed 's#^\./##') | while IFS= read -r rel; do
   src="$FILES/$rel"
@@ -101,8 +103,8 @@ done
 install -m 0755 "$ROOT/core/state/git-branch.sh" "$AGENT_DIR/state.sh"
 echo "  + scripts/jira-agent/state.sh  (core/state/git-branch.sh)"
 mkdir -p "$AGENT_DIR/ai"
-install -m 0644 "$ROOT/core/ai/claude-code.sh" "$AGENT_DIR/ai/brain.sh"
-echo "  + scripts/jira-agent/ai/brain.sh  (core/ai/claude-code.sh)"
+install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
+echo "  + scripts/jira-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
 
 jq -n \
@@ -112,14 +114,14 @@ jq -n \
   --arg project_name "$PROJECT_NAME" --arg audience "$AUDIENCE" \
   --arg stack_note "$STACK_NOTE" --arg branch_prefix "$BRANCH_PREFIX" \
   --arg pr_base "$PR_BASE" --arg qa_command "$QA_COMMAND" \
-  --arg claude_model "$CLAUDE_MODEL" --arg worker_name "$WORKER_NAME" \
-  '{recipe: "jira/project-agent", runtime: "github-actions", brain: "claude-code",
+  --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" --arg worker_name "$WORKER_NAME" \
+  '{recipe: "jira/project-agent", runtime: "github-actions", brain: $brain,
     handlers: "issues", github_repo: $github_repo, jira_site: $jira_site,
     jira_project_key: $jira_project_key, status_analyze: $status_analyze,
     status_implement: $status_implement, agent_name: $agent_name,
     project_name: $project_name, audience: $audience, stack_note: $stack_note,
     branch_prefix: $branch_prefix, pr_base: $pr_base, qa_command: $qa_command,
-    claude_model: $claude_model, worker_name: $worker_name}' > "$CONFIG"
+    ai_model: $ai_model, worker_name: $worker_name}' > "$CONFIG"
 echo "  + scripts/jira-agent/automation.config.json"
 
 render_check "$AGENT_DIR" "$TARGET/.github/workflows/jira-agent.yml" || true
@@ -127,10 +129,10 @@ render_check "$AGENT_DIR" "$TARGET/.github/workflows/jira-agent.yml" || true
 say "GitHub secrets"
 note "Required on $GITHUB_REPO:"
 note "  JIRA_EMAIL + JIRA_API_TOKEN — id.atlassian.com → Security → API tokens"
-note "  CLAUDE_CODE_OAUTH_TOKEN — 'claude setup-token' (subscription) OR ANTHROPIC_API_KEY (pay-per-token)"
+note "  $BRAIN_AUTH_VARS — auth for the $BRAIN_NAME brain"
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
-    for s in JIRA_EMAIL JIRA_API_TOKEN CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY AGENT_GH_PAT; do
+    for s in JIRA_EMAIL JIRA_API_TOKEN $BRAIN_AUTH_VARS AGENT_GH_PAT; do
       if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
     done
   fi

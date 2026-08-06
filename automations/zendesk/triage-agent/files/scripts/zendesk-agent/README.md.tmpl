@@ -28,7 +28,7 @@ agent's own notes are private), with recency tracked by the numeric comment id.
 
 - **Recover / backfill:** Actions → *Zendesk Triage Agent* → *Run workflow* — empty `item_id` reconciles recent open tickets + tracked ones; a ticket id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/zendesk-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/zendesk-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** deactivate the webhook (Admin Center → Apps and integrations → Webhooks) or the two triggers feeding it (Objects and rules → Business rules → Triggers) — no code change needed.
 
 ## Local dry-run (safe — needs ZENDESK_EMAIL + ZENDESK_API_TOKEN exported)

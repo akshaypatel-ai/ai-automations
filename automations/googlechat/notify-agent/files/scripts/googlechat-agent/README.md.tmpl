@@ -28,7 +28,7 @@ future `ask` handler, deliberately out of scope for this webhook-only recipe.
 
 - **Manual test:** Actions → *Google Chat Notify Agent* → *Run workflow* → mode `ship`/`incident`.
 - **Transcripts:** every run uploads `.agent-out/` (prompt with gathered context, AI transcript) as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/googlechat-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/googlechat-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** `gh workflow disable "Google Chat Notify Agent"`.
 - **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/googlechat-agent.yml` — edit and merge to change.
 - **Rotate the webhook:** space → ⚙ → Apps & integrations → Webhooks — delete and re-add, then update the `GCHAT_WEBHOOK_URL` secret. The URL embeds its own key+token, so rotating the webhook rotates the credential.

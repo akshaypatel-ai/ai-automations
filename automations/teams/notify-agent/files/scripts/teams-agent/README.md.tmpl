@@ -26,7 +26,7 @@ same channel.
 
 - **Manual test:** Actions → *Teams Notify Agent* → *Run workflow* → mode.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/teams-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/teams-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause ship/incident:** `gh workflow disable "Teams Notify Agent"`.
 - **Pause ask:** delete the outgoing webhook (Team → Manage team → Apps).
 - **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/teams-agent.yml` — edit and merge to change.

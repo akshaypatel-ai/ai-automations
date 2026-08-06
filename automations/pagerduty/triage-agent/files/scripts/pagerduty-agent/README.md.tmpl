@@ -32,7 +32,7 @@ finished.
 
 - **Recover / backfill:** Actions → *PagerDuty Triage Agent* → *Run workflow* — empty `item_id` reconciles the 25 most recently created triggered/acknowledged incidents + tracked ones; an incident id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/pagerduty-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/pagerduty-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** delete or disable the webhook subscription (Integrations → Generic Webhooks (v3)) — the relay can stay deployed. Re-creating the subscription mints a NEW signing secret; update the worker secret when you do.
 
 ## Local dry-run (safe — needs PAGERDUTY_TOKEN exported)

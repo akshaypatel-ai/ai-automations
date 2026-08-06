@@ -4,7 +4,7 @@
   "tool": "slack",
   "status": "beta",
   "runtime": "github-actions",
-  "brains": ["claude-code"],
+  "brains": ["claude-code", "codex", "gemini-cli"],
   "handlers": ["mentions", "channel", "reactions", "dm"],
   "requires": ["git", "jq", "gh", "curl", "wrangler"]
 }

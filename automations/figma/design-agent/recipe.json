@@ -4,7 +4,7 @@
   "tool": "figma",
   "status": "beta",
   "runtime": "github-actions",
-  "brains": ["claude-code"],
+  "brains": ["claude-code", "codex", "gemini-cli"],
   "handlers": ["comments"],
   "requires": ["git", "jq", "gh", "curl"]
 }

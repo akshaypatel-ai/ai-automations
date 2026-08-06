@@ -31,7 +31,7 @@ compared numerically in jq, never in bash.
 
 - **Recover / backfill:** Actions → *Front Triage Agent* → *Run workflow* — empty `item_id` reconciles recent open conversations + tracked ones; a conversation id (`cnv_…`) processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/front-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/front-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** disable the rule(s) (Front → Settings → Rules) — no code change needed.
 
 ## Local dry-run (safe — needs FRONT_TOKEN exported)

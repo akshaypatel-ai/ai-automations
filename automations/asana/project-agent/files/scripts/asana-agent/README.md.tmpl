@@ -31,7 +31,7 @@ recency is tracked by story `created_at` (ISO-8601).
 
 - **Recover / backfill:** Actions → *Asana Project Agent* → *Run workflow* — empty `item_id` reconciles both watched sections + tracked tasks; a task gid processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/asana-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/asana-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** `api.sh DELETE "/webhooks/<webhook_gid>"` (list them: `api.sh GET "/webhooks?workspace=<workspace_gid>&resource={{ASANA_PROJECT_GID}}"`).
 - **Webhook expiry:** Asana deactivates webhooks whose target keeps failing; recreate with the same two-terminal handshake flow from the install notes.
 - **Known blind spot:** moving a task back into a watched section after the agent processed it there needs a new comment or manual run to re-trigger.

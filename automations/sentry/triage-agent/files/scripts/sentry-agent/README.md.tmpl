@@ -31,7 +31,7 @@ issues are skipped — humans settled those.
 
 - **Recover / backfill:** Actions → *Sentry Triage Agent* → *Run workflow* — empty `item_id` reconciles the 25 most recently active unresolved issues + tracked ones; a Sentry issue id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/sentry-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/sentry-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** remove the "Send a notification via …" action from the alert rule(s) (Alerts → edit rule) — the integration and relay can stay deployed.
 - **Known blind spot:** recurrence is only noticed when another delivery (or manual run) arrives — alert rules with long cooldowns delay the update comment; the reconcile button catches up.
 

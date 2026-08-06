@@ -25,7 +25,7 @@ capped at 1800 chars (stickies are small — brevity is the feature).
 
 - **Manual test:** Actions → *Miro Board Agent* → *Run workflow* → a question (+ optionally the question sticky's item id; blank places the reply near the board origin and the prompt shows "(origin sticky unavailable)").
 - **Transcripts:** every run uploads `.agent-out/` (prompt with gathered sticky context, AI transcript) as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/miro-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/miro-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** disable the workflow in the Actions UI, or delete the subscription:
   `curl -X DELETE -H "Authorization: Bearer <MIRO_TOKEN>" https://api.miro.com/v2-experimental/webhooks/subscriptions/<subscription_id>`
   (list them via `GET https://api.miro.com/v2-experimental/webhooks/subscriptions`).

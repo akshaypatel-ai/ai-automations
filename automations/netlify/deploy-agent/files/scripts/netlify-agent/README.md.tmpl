@@ -35,7 +35,7 @@ end with the `{{AGENT_MARKER}}` footer.
 
 - **Recover / backfill:** Actions → *Netlify Deploy Agent* → *Run workflow* — empty `item_id` reconciles the 10 most recent failed deploys of the site (`state=error`) + tracked ones; a deploy id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact (prompt, error context, stream).
-- **Model:** `CLAUDE_MODEL` in `scripts/netlify-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/netlify-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** delete (or disable) the notification in Netlify Site configuration → Notifications → Deploy notifications — the relay can stay deployed; recreating the notification reuses the JWS secret you chose (or pick a new one and `wrangler secret put NETLIFY_JWS_SECRET` again).
 - **Known blind spot:** deploys that fail while the notification is down are only caught by the reconcile button — it scans the site's last 10 failed deploys.
 

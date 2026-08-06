@@ -30,7 +30,7 @@ ordering by id is unsafe).
 
 - **Recover / backfill:** Actions → *Intercom Triage Agent* → *Run workflow* — empty `item_id` reconciles recent open conversations + tracked ones; a conversation id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/intercom-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/intercom-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** Developer Hub → your app → Webhooks → unsubscribe the conversation topics (or clear the endpoint URL) — no code change needed.
 
 ## Local dry-run (safe — needs INTERCOM_TOKEN exported)

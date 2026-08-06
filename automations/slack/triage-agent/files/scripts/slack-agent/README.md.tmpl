@@ -30,7 +30,7 @@ own user id (from `auth.test`) and any `bot_id` messages are never input.
 
 - **Re-check a thread:** Actions → *Slack Triage Agent* → *Run workflow* with `item_id` = `<channel>:<root_ts>`; empty re-checks every tracked thread.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/slack-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/slack-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** disable Event Subscriptions in the Slack app config (api.slack.com/apps).
 - **Channels/emoji:** `env.sh` **and** the relay's `wrangler.toml` must agree — easiest: re-run the installer, then redeploy the relay.
 

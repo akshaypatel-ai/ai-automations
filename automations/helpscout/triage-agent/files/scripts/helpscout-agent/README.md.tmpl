@@ -32,7 +32,7 @@ name keeps it out of the uploaded artifacts, which skip hidden files.
 
 - **Recover / backfill:** Actions → *Help Scout Triage Agent* → *Run workflow* — empty `item_id` reconciles recent active conversations + tracked ones; a conversation id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/helpscout-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/helpscout-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** Manage → Apps → Webhooks → deactivate the webhook (or deselect its events) — no code change needed.
 
 ## Local dry-run (safe — needs HELPSCOUT_APP_ID + HELPSCOUT_APP_SECRET exported)

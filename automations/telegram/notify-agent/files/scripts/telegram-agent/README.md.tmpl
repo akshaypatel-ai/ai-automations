@@ -20,7 +20,7 @@ parser), capped defensively under the 4096-char limit.
 
 - **Manual test:** Actions → *Telegram Notify Agent* → *Run workflow* → mode `ship`/`incident`/`ask`.
 - **Transcripts:** every run uploads `.agent-out/` (prompt with gathered context, AI transcript) as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/telegram-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/telegram-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause ship/incident:** disable the workflow in the Actions UI.
   **Pause ask:** `curl "https://api.telegram.org/bot<TOKEN>/deleteWebhook"`.
 - **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/telegram-agent.yml` — edit and merge to change.

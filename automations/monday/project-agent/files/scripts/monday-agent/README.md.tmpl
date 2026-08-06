@@ -30,7 +30,7 @@ non-status columns are dropped at the edge.
 
 - **Recover / backfill:** Actions → *Monday Project Agent* → *Run workflow* — empty `item_id` reconciles both watched statuses + tracked items; an item id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/monday-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/monday-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** delete the webhooks — list ids with
   `api.sh 'query { webhooks (board_id: {{MONDAY_BOARD_ID}}) { id event } }'`, then
   `api.sh 'mutation ($id: ID!) { delete_webhook (id: $id) { id } }' '{"id": "<id>"}'`.

@@ -44,7 +44,7 @@ delivery; both absent or wrong is a 401.
 
 - **Recover / backfill:** Actions → *Buildkite Build Agent* → *Run workflow* — empty `item_id` reconciles the 10 most recent failed builds (`state=failed` on the configured pipeline) + tracked ones; a build number processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact (prompt, job-log context, stream).
-- **Model:** `CLAUDE_MODEL` in `scripts/buildkite-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/buildkite-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** delete the webhook notification service (or drop `build.failed` from its events) in Buildkite Organization Settings → Notification Services — the relay can stay deployed; recreating the service mints a new Token (`wrangler secret put BUILDKITE_WEBHOOK_SECRET` again).
 - **Known blind spot:** builds that fail while the webhook is down are only caught by the reconcile button — it scans the last 10 failed builds.
 

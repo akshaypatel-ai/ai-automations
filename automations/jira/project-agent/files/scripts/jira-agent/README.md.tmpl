@@ -30,7 +30,7 @@ numeric comment ids (increasing).
 
 - **Recover from a missed webhook / backfill an issue:** Actions → *Jira Project Agent* → *Run workflow* — empty `item_id` reconciles both watched states plus every tracked issue; a specific issue key (e.g. `NOVA-123`) processes one.
 - **Transcripts:** every run uploads `.agent-out/` (prompt, full AI transcript, result JSON) as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/jira-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/jira-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause the agent:** disable the webhook: Jira → Settings → System → WebHooks.
 - **Known blind spot:** moving an issue back into a watched state *without saying anything* may be filtered at the edge — re-trigger with a comment or a manual run.
 

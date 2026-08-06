@@ -8,6 +8,7 @@ ROOT="$(cd "$RECIPE_DIR/../../.." && pwd)"
 FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
+source "$ROOT/core/lib/brains.sh"
 
 need git jq curl
 
@@ -57,7 +58,8 @@ AGENT_MARKER="🤖 $AGENT_NAME"
 ask PROJECT_NAME "Product name used in replies" "$(d project_name "$(basename "$TARGET")")"
 ask AUDIENCE "Who asks the questions? (replies are written for them)" "$(d audience 'designers and PMs')"
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
-ask CLAUDE_MODEL "Claude model" "$(d claude_model 'claude-sonnet-5')"
+choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
+ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
 
 repo_slug=$(basename "$TARGET" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
 WORKER_NAME="$(d worker_name "${repo_slug}-figma-relay")"
@@ -68,14 +70,14 @@ cat <<EOF
   GitHub repo        $GITHUB_REPO
   Summon             comments starting with '$TRIGGER'
   Watched file       ${WATCHED_FILE:-(all team files)}
-  Agent              $AGENT_MARKER · brain claude-code · model $CLAUDE_MODEL
+  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL
   Writes             thread replies only — never edits designs or resolves threads
   Relay worker       $WORKER_NAME
 EOF
 confirm "Install into $TARGET?" || { echo "aborted — nothing written"; exit 1; }
 
 say "Installing files"
-RENDER_VARS="GITHUB_REPO HANDLERS TRIGGER WATCHED_FILE AGENT_NAME AGENT_MARKER PROJECT_NAME AUDIENCE STACK_NOTE CLAUDE_MODEL WORKER_NAME"
+RENDER_VARS="GITHUB_REPO HANDLERS TRIGGER WATCHED_FILE AGENT_NAME AGENT_MARKER PROJECT_NAME AUDIENCE STACK_NOTE BRAIN_NAME AI_MODEL WORKER_NAME"
 
 (cd "$FILES" && find . -type f ! -name '.DS_Store' | sed 's#^\./##') | while IFS= read -r rel; do
   src="$FILES/$rel"
@@ -87,21 +89,21 @@ RENDER_VARS="GITHUB_REPO HANDLERS TRIGGER WATCHED_FILE AGENT_NAME AGENT_MARKER P
 done
 
 mkdir -p "$AGENT_DIR/ai"
-install -m 0644 "$ROOT/core/ai/claude-code.sh" "$AGENT_DIR/ai/brain.sh"
-echo "  + scripts/figma-agent/ai/brain.sh  (core/ai/claude-code.sh)"
+install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
+echo "  + scripts/figma-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
 
 jq -n \
   --arg github_repo "$GITHUB_REPO" --arg trigger "$TRIGGER" \
   --arg watched_file "$WATCHED_FILE" --arg agent_name "$AGENT_NAME" \
   --arg project_name "$PROJECT_NAME" --arg audience "$AUDIENCE" \
-  --arg stack_note "$STACK_NOTE" --arg claude_model "$CLAUDE_MODEL" \
+  --arg stack_note "$STACK_NOTE" --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" \
   --arg worker_name "$WORKER_NAME" \
-  '{recipe: "figma/design-agent", runtime: "github-actions", brain: "claude-code",
+  '{recipe: "figma/design-agent", runtime: "github-actions", brain: $brain,
     handlers: "comments", github_repo: $github_repo, trigger: $trigger,
     watched_file: $watched_file, agent_name: $agent_name,
     project_name: $project_name, audience: $audience,
-    stack_note: $stack_note, claude_model: $claude_model,
+    stack_note: $stack_note, ai_model: $ai_model,
     worker_name: $worker_name}' > "$CONFIG"
 echo "  + scripts/figma-agent/automation.config.json"
 
@@ -110,10 +112,10 @@ render_check "$AGENT_DIR" "$TARGET/.github/workflows/figma-agent.yml" || true
 say "GitHub secrets"
 note "Required on $GITHUB_REPO:"
 note "  FIGMA_TOKEN — figma.com/settings → Personal access tokens (scopes: file_comments:write + files:read)"
-note "  CLAUDE_CODE_OAUTH_TOKEN — 'claude setup-token' (subscription) OR ANTHROPIC_API_KEY (pay-per-token)"
+note "  $BRAIN_AUTH_VARS — auth for the $BRAIN_NAME brain"
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
-    for s in FIGMA_TOKEN CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY; do
+    for s in FIGMA_TOKEN $BRAIN_AUTH_VARS; do
       if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
     done
   fi

@@ -77,7 +77,7 @@ if [[ "${DRY_RUN:-0}" == "1" ]]; then
   exit 0
 fi
 
-echo "running playbook '$MODE' (brain: $AI_NAME, model: ${CLAUDE_MODEL:-default})"
+echo "running playbook '$MODE' (brain: $AI_NAME, model: ${AI_MODEL:-default})"
 transcript="$OUT_DIR/transcript-$MODE.jsonl"
 ai_run "$prompt_file" "$transcript"
 ai_result "$transcript"

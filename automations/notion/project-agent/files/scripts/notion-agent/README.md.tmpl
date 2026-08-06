@@ -31,7 +31,7 @@ page body, add a comment (or run manually) to re-trigger.
 
 - **Recover / backfill:** Actions → *Notion Project Agent* → *Run workflow* — empty `item_id` reconciles both watched statuses + tracked pages; a page id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/notion-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/notion-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** disable (or delete) the webhook subscription in the integration settings (notion.so/profile/integrations → your integration → Webhooks).
 - **Known blind spot:** moving a page back into a watched status silently — re-trigger with a comment or a manual run.
 

@@ -43,7 +43,7 @@ Comment recency is tracked by numeric comment ids (increasing).
 
 - **Recover from a missed webhook / backfill:** Actions → *Azure DevOps Project Agent* → *Run workflow* — empty `item_id` reconciles both watched states (WIQL) plus every tracked work item; a specific id (e.g. `42`) processes one.
 - **Transcripts:** every run uploads `.agent-out/` (prompt, full AI transcript, result JSON) as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/azdo-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/azdo-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause the agent:** disable the three subscriptions: Project settings → Service hooks.
 - **Known blind spot:** moving a work item back into a watched state *without saying anything* can be dropped if the "Work item updated" subscription's field filter was set differently — re-trigger with a comment or a manual run.
 

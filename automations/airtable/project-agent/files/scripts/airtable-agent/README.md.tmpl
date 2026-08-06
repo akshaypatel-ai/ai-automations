@@ -36,7 +36,7 @@ option matching is case-insensitive.
 
 - **Recover / backfill:** Actions → *Airtable Project Agent* → *Run workflow* — empty `item_id` reconciles both watched options + tracked records; a record id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/airtable-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/airtable-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Webhook expiry:** Airtable webhooks expire after **7 days** unless refreshed. Every agent run best-effort refreshes the webhook in `AIRTABLE_WEBHOOK_ID` (env.sh), so an active board keeps itself alive — but after 7+ quiet days the webhook lapses silently. Refresh it (`api.sh POST "/bases/{{AIRTABLE_BASE_ID}}/webhooks/<webhook_id>/refresh"`) or recreate it; list them with `api.sh GET "/bases/{{AIRTABLE_BASE_ID}}/webhooks"`.
 - **Pause:** `api.sh DELETE "/bases/{{AIRTABLE_BASE_ID}}/webhooks/<webhook_id>"` (recreate to resume — new MAC secret, new id).
 - **Known blind spot:** a dormant repo — no agent runs for 7+ days — wakes up deaf (expired webhook); poke it per the webhook-expiry bullet, then trigger a manual reconcile run.

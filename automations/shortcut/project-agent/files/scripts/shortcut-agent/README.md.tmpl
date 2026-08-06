@@ -33,7 +33,7 @@ several actions — the relay dedupes ids and dispatches at most 10 per delivery
 
 - **Recover / backfill:** Actions → *Shortcut Project Agent* → *Run workflow* — empty `item_id` reconciles both watched states + tracked stories; a story id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/shortcut-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/shortcut-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** disable or delete the outgoing webhook (Shortcut → Settings → API → Webhooks).
 - **Known blind spot:** moving a story back into a watched state silently — re-trigger with a comment or a manual run.
 

@@ -18,7 +18,7 @@ doorbell/diff machinery isn't needed here.
 
 - **Manual test:** Actions → *LINE Notify Agent* → *Run workflow* → mode `ship`/`incident`/`ask`.
 - **Transcripts:** every run uploads `.agent-out/` (prompt with gathered context, AI transcript) as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/line-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/line-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause ship/incident:** disable the workflow in the Actions UI. **Pause ask:** turn off "Use webhook" in LINE Developers.
 - **Message quota:** LINE's free plan caps push messages per month — keep the incident watch list tight.
 

@@ -8,6 +8,7 @@ ROOT="$(cd "$RECIPE_DIR/../../.." && pwd)"
 FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
+source "$ROOT/core/lib/brains.sh"
 
 need git jq curl
 
@@ -60,7 +61,8 @@ ask AGENT_NAME "Agent display name (signs every issue)" "$(d agent_name 'Sentry 
 AGENT_MARKER="🤖 $AGENT_NAME"
 ask PROJECT_NAME "Product name used in issues" "$(d project_name "$(basename "$TARGET")")"
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
-ask CLAUDE_MODEL "Claude model" "$(d claude_model 'claude-sonnet-5')"
+choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
+ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
 
 repo_slug=$(basename "$TARGET" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
 WORKER_NAME="$(d worker_name "${repo_slug}-sentry-relay")"
@@ -71,13 +73,13 @@ cat <<EOF
   GitHub repo        $GITHUB_REPO
   Sentry             $SENTRY_ORG / $SENTRY_PROJECT  ($SENTRY_API_BASE)
   Issue label        $ISSUE_LABEL
-  Agent              $AGENT_MARKER · brain claude-code · model $CLAUDE_MODEL
+  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL
   Relay worker       $WORKER_NAME
 EOF
 confirm "Install into $TARGET?" || { echo "aborted — nothing written"; exit 1; }
 
 say "Installing files"
-RENDER_VARS="GITHUB_REPO HANDLERS SENTRY_API_BASE SENTRY_ORG SENTRY_PROJECT ISSUE_LABEL AGENT_NAME AGENT_MARKER PROJECT_NAME STACK_NOTE CLAUDE_MODEL WORKER_NAME"
+RENDER_VARS="GITHUB_REPO HANDLERS SENTRY_API_BASE SENTRY_ORG SENTRY_PROJECT ISSUE_LABEL AGENT_NAME AGENT_MARKER PROJECT_NAME STACK_NOTE BRAIN_NAME AI_MODEL WORKER_NAME"
 
 (cd "$FILES" && find . -type f ! -name '.DS_Store' | sed 's#^\./##') | while IFS= read -r rel; do
   src="$FILES/$rel"
@@ -91,8 +93,8 @@ done
 install -m 0755 "$ROOT/core/state/git-branch.sh" "$AGENT_DIR/state.sh"
 echo "  + scripts/sentry-agent/state.sh  (core/state/git-branch.sh)"
 mkdir -p "$AGENT_DIR/ai"
-install -m 0644 "$ROOT/core/ai/claude-code.sh" "$AGENT_DIR/ai/brain.sh"
-echo "  + scripts/sentry-agent/ai/brain.sh  (core/ai/claude-code.sh)"
+install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
+echo "  + scripts/sentry-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
 
 jq -n \
@@ -100,13 +102,13 @@ jq -n \
   --arg sentry_org "$SENTRY_ORG" --arg sentry_project "$SENTRY_PROJECT" \
   --arg issue_label "$ISSUE_LABEL" --arg agent_name "$AGENT_NAME" \
   --arg project_name "$PROJECT_NAME" --arg stack_note "$STACK_NOTE" \
-  --arg claude_model "$CLAUDE_MODEL" --arg worker_name "$WORKER_NAME" \
-  '{recipe: "sentry/triage-agent", runtime: "github-actions", brain: "claude-code",
+  --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" --arg worker_name "$WORKER_NAME" \
+  '{recipe: "sentry/triage-agent", runtime: "github-actions", brain: $brain,
     handlers: "issues", github_repo: $github_repo, sentry_api_base: $sentry_api_base,
     sentry_org: $sentry_org, sentry_project: $sentry_project,
     issue_label: $issue_label, agent_name: $agent_name,
     project_name: $project_name, stack_note: $stack_note,
-    claude_model: $claude_model, worker_name: $worker_name}' > "$CONFIG"
+    ai_model: $ai_model, worker_name: $worker_name}' > "$CONFIG"
 echo "  + scripts/sentry-agent/automation.config.json"
 
 render_check "$AGENT_DIR" "$TARGET/.github/workflows/sentry-agent.yml" || true
@@ -114,10 +116,10 @@ render_check "$AGENT_DIR" "$TARGET/.github/workflows/sentry-agent.yml" || true
 say "GitHub secrets"
 note "Required on $GITHUB_REPO:"
 note "  SENTRY_TOKEN — the Internal Integration's token (project:read + event:read), or a user auth token"
-note "  CLAUDE_CODE_OAUTH_TOKEN — 'claude setup-token' (subscription) OR ANTHROPIC_API_KEY (pay-per-token)"
+note "  $BRAIN_AUTH_VARS — auth for the $BRAIN_NAME brain"
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
-    for s in SENTRY_TOKEN CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY AGENT_GH_PAT; do
+    for s in SENTRY_TOKEN $BRAIN_AUTH_VARS AGENT_GH_PAT; do
       if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
     done
   fi

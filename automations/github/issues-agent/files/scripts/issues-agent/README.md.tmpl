@@ -28,7 +28,7 @@ is tracked by the numeric comment id.
 
 - **Recover / backfill:** Actions → *Issues Agent* → *Run workflow* — empty `item_id` reconciles both watched labels + tracked issues; an issue number processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/issues-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/issues-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** `gh workflow disable "Issues Agent"` (re-enable with `gh workflow enable`).
 - **Known blind spot:** re-applying a label the issue already has fires no event — re-trigger with a comment or a manual run.
 - **Public-repo safety:** nothing runs until a maintainer applies a watched label; comments alone never start work on an untracked issue.

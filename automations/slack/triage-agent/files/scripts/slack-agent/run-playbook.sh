@@ -40,7 +40,7 @@ prompt_file="$OUT_DIR/prompt-$STATE_KEY-$PLAYBOOK.md"
 EOF
 } > "$prompt_file"
 
-echo "running playbook '$PLAYBOOK' for thread $CHANNEL:$ROOT_TS (brain: $AI_NAME, model: ${CLAUDE_MODEL:-default})"
+echo "running playbook '$PLAYBOOK' for thread $CHANNEL:$ROOT_TS (brain: $AI_NAME, model: ${AI_MODEL:-default})"
 
 transcript="$OUT_DIR/transcript-$STATE_KEY-$PLAYBOOK.jsonl"
 ai_run "$prompt_file" "$transcript"

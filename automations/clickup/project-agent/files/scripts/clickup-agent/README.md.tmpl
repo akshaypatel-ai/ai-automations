@@ -29,7 +29,7 @@ by the comment `date` field (ms epoch).
 
 - **Recover / backfill:** Actions → *ClickUp Project Agent* → *Run workflow* — empty `item_id` reconciles both watched statuses + tracked tasks; a task id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/clickup-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/clickup-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** `api.sh DELETE "/webhook/<webhook_id>"` (list them: `api.sh GET "/team/{{CLICKUP_TEAM_ID}}/webhook"` — also shows webhook health).
 - **Known blind spot:** moving a task back into a watched status silently — re-trigger with a comment or a manual run.
 

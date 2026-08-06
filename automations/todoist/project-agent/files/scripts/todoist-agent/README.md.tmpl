@@ -32,7 +32,7 @@ a second line of defense. Comment recency is tracked by `posted_at` (ISO-8601).
 
 - **Recover / backfill:** Actions → *Todoist Project Agent* → *Run workflow* — empty `item_id` reconciles both watched sections + tracked tasks (REST v2 has no tasks-by-section endpoint: the scan resolves section names → ids, then filters the project's tasks client-side); a task id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/todoist-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/todoist-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** clear the webhook URL (or delete the app) in the App Management console (developer.todoist.com/appconsole.html); restoring it later reuses the same relay.
 - **Webhooks silent?** Todoist app webhooks only fire for accounts that authorized the app — complete the app's OAuth flow once with your own account to switch deliveries on.
 - **Known blind spot:** moving a task back into a watched section after the agent processed it there needs a new comment or manual run to re-trigger.

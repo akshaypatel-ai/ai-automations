@@ -23,7 +23,7 @@ there's no state branch. Replies always target the thread's ROOT comment
 
 - **Manual test:** Actions → *Figma Design Agent* → *Run workflow* → a question + file key + root comment id (any comment's id works for a fresh thread).
 - **Transcripts:** every run uploads `.agent-out/` (prompt with gathered thread, AI transcript) as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/figma-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/figma-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** disable the workflow in the Actions UI, or delete the webhook:
   `curl -X DELETE -H "X-Figma-Token: <TOKEN>" https://api.figma.com/v2/webhooks/<webhook_id>`
   (list them via `GET https://api.figma.com/v2/webhooks?context=team&context_id=<team_id>`).

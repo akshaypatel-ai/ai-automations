@@ -31,7 +31,7 @@ server configs.
 
 - **Manual test:** Actions → *Rocket.Chat Notify Agent* → *Run workflow* → mode.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/rocketchat-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/rocketchat-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause ship/incident:** `gh workflow disable "Rocket.Chat Notify Agent"`.
 - **Pause ask:** disable the outgoing webhook (Admin → Integrations).
 - **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/rocketchat-agent.yml` — edit and merge to change.

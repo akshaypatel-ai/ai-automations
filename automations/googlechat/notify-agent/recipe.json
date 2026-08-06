@@ -4,7 +4,7 @@
   "tool": "googlechat",
   "status": "beta",
   "runtime": "github-actions",
-  "brains": ["claude-code"],
+  "brains": ["claude-code", "codex", "gemini-cli"],
   "handlers": ["ship", "incident"],
   "requires": ["git", "jq", "gh", "curl"]
 }

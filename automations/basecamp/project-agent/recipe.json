@@ -4,7 +4,7 @@
   "tool": "basecamp",
   "status": "stable",
   "runtime": "github-actions",
-  "brains": ["claude-code"],
+  "brains": ["claude-code", "codex", "gemini-cli"],
   "handlers": ["cards", "todos", "messages", "docs", "checkins", "schedule"],
   "requires": ["git", "jq", "gh", "basecamp CLI", "wrangler"]
 }

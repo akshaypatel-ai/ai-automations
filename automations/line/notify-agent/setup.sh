@@ -8,6 +8,7 @@ ROOT="$(cd "$RECIPE_DIR/../../.." && pwd)"
 FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
+source "$ROOT/core/lib/brains.sh"
 
 need git jq curl
 
@@ -57,7 +58,8 @@ ask AGENT_NAME "Agent display name" "$(d agent_name 'Notify Agent')"
 ask PROJECT_NAME "Product name used in messages" "$(d project_name "$(basename "$TARGET")")"
 ask AUDIENCE "Who reads the LINE group? (messages are written for them)" "$(d audience 'the team')"
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
-ask CLAUDE_MODEL "Claude model" "$(d claude_model 'claude-sonnet-5')"
+choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
+ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
 
 repo_slug=$(basename "$TARGET" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
 WORKER_NAME="$(d worker_name "${repo_slug}-line-relay")"
@@ -69,12 +71,12 @@ cat <<EOF
   Push target        $LINE_TARGET_ID
   Handlers           $HANDLERS
   Incident watch     $WF_NAMES
-  Agent              $AGENT_NAME · brain claude-code · model $CLAUDE_MODEL
+  Agent              $AGENT_NAME · brain $BRAIN_NAME · model $AI_MODEL
 EOF
 confirm "Install into $TARGET?" || { echo "aborted — nothing written"; exit 1; }
 
 say "Installing files"
-RENDER_VARS="GITHUB_REPO HANDLERS LINE_TARGET_ID INCIDENT_WORKFLOWS AGENT_NAME PROJECT_NAME AUDIENCE STACK_NOTE CLAUDE_MODEL WORKER_NAME"
+RENDER_VARS="GITHUB_REPO HANDLERS LINE_TARGET_ID INCIDENT_WORKFLOWS AGENT_NAME PROJECT_NAME AUDIENCE STACK_NOTE BRAIN_NAME AI_MODEL WORKER_NAME"
 
 (cd "$FILES" && find . -type f ! -name '.DS_Store' | sed 's#^\./##') | while IFS= read -r rel; do
   src="$FILES/$rel"
@@ -86,8 +88,8 @@ RENDER_VARS="GITHUB_REPO HANDLERS LINE_TARGET_ID INCIDENT_WORKFLOWS AGENT_NAME P
 done
 
 mkdir -p "$AGENT_DIR/ai"
-install -m 0644 "$ROOT/core/ai/claude-code.sh" "$AGENT_DIR/ai/brain.sh"
-echo "  + scripts/line-agent/ai/brain.sh  (core/ai/claude-code.sh)"
+install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
+echo "  + scripts/line-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
 
 jq -n \
@@ -95,11 +97,11 @@ jq -n \
   --arg line_target_id "$LINE_TARGET_ID" --arg wf_names "$WF_NAMES" \
   --arg agent_name "$AGENT_NAME" --arg project_name "$PROJECT_NAME" \
   --arg audience "$AUDIENCE" --arg stack_note "$STACK_NOTE" \
-  --arg claude_model "$CLAUDE_MODEL" --arg worker_name "$WORKER_NAME" \
-  '{recipe: "line/notify-agent", runtime: "github-actions", brain: "claude-code",
+  --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" --arg worker_name "$WORKER_NAME" \
+  '{recipe: "line/notify-agent", runtime: "github-actions", brain: $brain,
     handlers: $handlers, github_repo: $github_repo, line_target_id: $line_target_id,
     wf_names: $wf_names, agent_name: $agent_name, project_name: $project_name,
-    audience: $audience, stack_note: $stack_note, claude_model: $claude_model,
+    audience: $audience, stack_note: $stack_note, ai_model: $ai_model,
     worker_name: $worker_name}' > "$CONFIG"
 echo "  + scripts/line-agent/automation.config.json"
 
@@ -109,7 +111,7 @@ say "Next steps (in order)"
 cat <<EOF
 1. GitHub secrets on $GITHUB_REPO:
      gh secret set LINE_CHANNEL_ACCESS_TOKEN -R $GITHUB_REPO   # LINE Developers → Messaging API → channel access token
-     gh secret set CLAUDE_CODE_OAUTH_TOKEN -R $GITHUB_REPO     # or ANTHROPIC_API_KEY
+     gh secret set ${BRAIN_AUTH_VARS%% *} -R $GITHUB_REPO     # brain auth ($BRAIN_NAME) — any one of: $BRAIN_AUTH_VARS
 
 2. Commit the new files in $TARGET and merge to the default branch.
    ship/incident are now LIVE — no relay needed.

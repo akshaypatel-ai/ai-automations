@@ -27,7 +27,7 @@ verification is a plain token compare (no HMAC — that's all Mattermost offers)
 
 - **Manual test:** Actions → *Mattermost Notify Agent* → *Run workflow* → mode.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/mattermost-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/mattermost-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause ship/incident:** `gh workflow disable "Mattermost Notify Agent"`.
 - **Pause ask:** delete the outgoing webhook (Integrations → Outgoing Webhooks).
 - **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/mattermost-agent.yml` — edit and merge to change.

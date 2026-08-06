@@ -39,7 +39,7 @@ string-compared).
 
 - **Recover / backfill:** Actions → *Confluence Docs Agent* → *Run workflow* — empty `item_id` reconciles labeled pages + tracked ones; a page id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/confluence-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/confluence-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** disable the two Automation rules (Space settings → Automation, or Global automation) — no code change needed. Standard-plan installs: just stop pressing the button.
 
 ## Local dry-run (safe — needs CONFLUENCE_EMAIL + CONFLUENCE_API_TOKEN exported)

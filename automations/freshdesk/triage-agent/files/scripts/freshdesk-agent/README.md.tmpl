@@ -31,7 +31,7 @@ triage regardless, so nothing is lost.
 
 - **Recover / backfill:** Actions → *Freshdesk Triage Agent* → *Run workflow* — empty `item_id` reconciles recent open tickets + tracked ones; a ticket id processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/freshdesk-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/freshdesk-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** disable the two automation rules (Admin → Workflows → Automations) — no code change needed.
 
 ## Local dry-run (safe — needs FRESHDESK_API_KEY exported)

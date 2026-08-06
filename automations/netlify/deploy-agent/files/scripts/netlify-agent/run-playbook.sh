@@ -52,7 +52,7 @@ EOF
   fi
 } > "$prompt_file"
 
-echo "running playbook '$PLAYBOOK' for deploy $ITEM_ID (brain: $AI_NAME, model: ${CLAUDE_MODEL:-default})"
+echo "running playbook '$PLAYBOOK' for deploy $ITEM_ID (brain: $AI_NAME, model: ${AI_MODEL:-default})"
 
 transcript="$OUT_DIR/transcript-$ITEM_ID-$PLAYBOOK.jsonl"
 ai_run "$prompt_file" "$transcript"

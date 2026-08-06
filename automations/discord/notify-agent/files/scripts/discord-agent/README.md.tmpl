@@ -25,7 +25,7 @@ capped defensively (Discord's 2000-char limit) and can never ping
 
 - **Manual test:** Actions → *Discord Notify Agent* → *Run workflow* → mode.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/discord-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/discord-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause ship/incident:** `gh workflow disable "Discord Notify Agent"`.
 - **Pause ask:** clear the Interactions Endpoint URL in the Discord Developer Portal.
 - **Incident watch list:** the `workflow_run.workflows` list in `.github/workflows/discord-agent.yml` — edit and merge to change.

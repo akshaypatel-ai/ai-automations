@@ -30,7 +30,7 @@ marker-prefixed comments (loop protection). Comment recency is tracked by
 
 - **Recover from a missed webhook / backfill an issue:** Actions → *Linear Project Agent* → *Run workflow* — empty `item_id` reconciles both watched states plus every tracked issue; a specific issue UUID or identifier (e.g. `ENG-123`) processes one.
 - **Transcripts:** every run uploads `.agent-out/` (prompt, full AI transcript, result JSON) as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/linear-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/linear-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause the agent:** disable the webhook in Linear → Settings → API → Webhooks.
 - **Known blind spot:** moving an issue back into a watched state *without saying anything* may be filtered at the edge — re-trigger with a comment or a manual run.
 

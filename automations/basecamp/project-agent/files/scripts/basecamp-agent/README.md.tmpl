@@ -36,7 +36,7 @@ skip marker-prefixed comments (loop protection).
 
 - **Recover from a missed webhook / backfill an item:** Actions → *Basecamp Project Agent* → *Run workflow* — empty `item_id` reconciles watched columns/to-do lists plus every tracked item; a specific `item_id` (with optional `item_type` hint) processes one item.
 - **Transcripts:** every run uploads `.agent-out/` (prompt, full AI transcript, result JSON) as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/basecamp-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/basecamp-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Handlers:** `ENABLED_HANDLERS` in `env.sh` **and** the relay's `wrangler.toml` must agree — change both (easiest: re-run the installer, then redeploy the relay).
 - **Pause the agent:** deactivate the webhook — `basecamp webhooks list --in {{BC_PROJECT_ID}}` then `basecamp webhooks update <id> --inactive --in {{BC_PROJECT_ID}}`.
 - **Known blind spots:** moving a card back into a watched column *without saying anything* is not dispatched — re-trigger with a comment or a manual run. Messages/docs/check-ins/schedule have no cheap "list recent" reconcile — they are webhook-driven; backfill a specific one by ID via *Run workflow*.

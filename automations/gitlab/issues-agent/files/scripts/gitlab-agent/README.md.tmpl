@@ -34,7 +34,7 @@ comments (loop protection). Note recency is tracked by the numeric note id
 
 - **Recover / backfill:** Actions → *GitLab Issues Agent* → *Run workflow* — empty `item_id` reconciles both watched labels + tracked issues; an issue iid processes one.
 - **Transcripts:** every run uploads `.agent-out/` as an artifact.
-- **Model:** `CLAUDE_MODEL` in `scripts/gitlab-agent/env.sh` (currently `{{CLAUDE_MODEL}}`).
+- **Model:** `AI_MODEL` in `scripts/gitlab-agent/env.sh` (currently `{{AI_MODEL}}`, brain `{{BRAIN_NAME}}`).
 - **Pause:** disable the webhook: GitLab project → Settings → Webhooks.
 - **PR ↔ issue linkage:** merging a GitHub PR can't auto-close a GitLab issue — the PR body links the issue URL; close the issue by hand after merging.
 - **Known blind spot:** removing and re-applying a watched label the saved state already recorded won't re-run the playbook (the resolver diffs against state) — re-trigger with a comment or a manual run.

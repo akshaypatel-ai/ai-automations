@@ -43,6 +43,8 @@ jobs:
       # (pay-per-token). If both are set, the API key wins.
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       FRESHDESK_API_KEY: ${{ secrets.FRESHDESK_API_KEY }}
 
     steps:
@@ -67,8 +69,8 @@ jobs:
           bash scripts/freshdesk-agent/api.sh GET "/tickets?per_page=1" | jq -e 'type == "array"' >/dev/null
           echo "Freshdesk auth OK ($FRESHDESK_DOMAIN.freshdesk.com)"
 
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+      - name: Install AI brain
+        run: bash -c 'source scripts/freshdesk-agent/ai/brain.sh && ai_install'
 
       - name: Run agent
         env:
@@ -83,8 +85,12 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN="$(printf '%s' "${CLAUDE_CODE_OAUTH_TOKEN:-}" | tr -d '[:space:]')"
           [ -z "$ANTHROPIC_API_KEY" ] && unset ANTHROPIC_API_KEY
           [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && unset CLAUDE_CODE_OAUTH_TOKEN
-          if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
-            echo "::error::Set repo secret CLAUDE_CODE_OAUTH_TOKEN (subscription) or ANTHROPIC_API_KEY (API billing)."
+          OPENAI_API_KEY="$(printf '%s' "${OPENAI_API_KEY:-}" | tr -d '[:space:]')"
+          GEMINI_API_KEY="$(printf '%s' "${GEMINI_API_KEY:-}" | tr -d '[:space:]')"
+          [ -z "$OPENAI_API_KEY" ] && unset OPENAI_API_KEY
+          [ -z "$GEMINI_API_KEY" ] && unset GEMINI_API_KEY
+          if ! bash -c 'source scripts/freshdesk-agent/ai/brain.sh && ai_check'; then
+            echo "::error::Brain auth/deps check failed — set the secret(s) named above."
             exit 1
           fi
           bash scripts/freshdesk-agent/agent-run.sh

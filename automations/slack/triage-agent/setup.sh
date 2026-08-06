@@ -8,6 +8,7 @@ ROOT="$(cd "$RECIPE_DIR/../../.." && pwd)"
 FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
+source "$ROOT/core/lib/brains.sh"
 
 need git jq curl
 
@@ -53,7 +54,8 @@ ask AGENT_NAME "Agent display name (also the Slack app name)" "$(d agent_name 'T
 ask PROJECT_NAME "Product name used in replies" "$(d project_name "$(basename "$TARGET")")"
 ask AUDIENCE "Who chats with the agent? (replies are written for them)" "$(d audience 'the team')"
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
-ask CLAUDE_MODEL "Claude model" "$(d claude_model 'claude-sonnet-5')"
+choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
+ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
 
 repo_slug=$(basename "$TARGET" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
 WORKER_NAME="$(d worker_name "${repo_slug}-slack-relay")"
@@ -65,13 +67,13 @@ cat <<EOF
   Handlers           $HANDLERS
   Triage channels    ${WATCHED_CHANNELS:-none (mentions/emoji/DM only)}
   Trigger emoji      $TRIGGER_EMOJI
-  Agent              $AGENT_NAME · brain claude-code · model $CLAUDE_MODEL
+  Agent              $AGENT_NAME · brain $BRAIN_NAME · model $AI_MODEL
   Relay worker       $WORKER_NAME
 EOF
 confirm "Install into $TARGET?" || { echo "aborted — nothing written"; exit 1; }
 
 say "Installing files"
-RENDER_VARS="GITHUB_REPO HANDLERS WATCHED_CHANNELS TRIGGER_EMOJI AGENT_NAME PROJECT_NAME AUDIENCE STACK_NOTE CLAUDE_MODEL WORKER_NAME"
+RENDER_VARS="GITHUB_REPO HANDLERS WATCHED_CHANNELS TRIGGER_EMOJI AGENT_NAME PROJECT_NAME AUDIENCE STACK_NOTE BRAIN_NAME AI_MODEL WORKER_NAME"
 
 (cd "$FILES" && find . -type f ! -name '.DS_Store' | sed 's#^\./##') | while IFS= read -r rel; do
   src="$FILES/$rel"
@@ -85,8 +87,8 @@ done
 install -m 0755 "$ROOT/core/state/git-branch.sh" "$AGENT_DIR/state.sh"
 echo "  + scripts/slack-agent/state.sh  (core/state/git-branch.sh)"
 mkdir -p "$AGENT_DIR/ai"
-install -m 0644 "$ROOT/core/ai/claude-code.sh" "$AGENT_DIR/ai/brain.sh"
-echo "  + scripts/slack-agent/ai/brain.sh  (core/ai/claude-code.sh)"
+install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
+echo "  + scripts/slack-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
 
 jq -n \
@@ -94,11 +96,11 @@ jq -n \
   --arg watched_channels "$WATCHED_CHANNELS" --arg trigger_emoji "$TRIGGER_EMOJI" \
   --arg agent_name "$AGENT_NAME" --arg project_name "$PROJECT_NAME" \
   --arg audience "$AUDIENCE" --arg stack_note "$STACK_NOTE" \
-  --arg claude_model "$CLAUDE_MODEL" --arg worker_name "$WORKER_NAME" \
-  '{recipe: "slack/triage-agent", runtime: "github-actions", brain: "claude-code",
+  --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" --arg worker_name "$WORKER_NAME" \
+  '{recipe: "slack/triage-agent", runtime: "github-actions", brain: $brain,
     handlers: $handlers, github_repo: $github_repo, watched_channels: $watched_channels,
     trigger_emoji: $trigger_emoji, agent_name: $agent_name, project_name: $project_name,
-    audience: $audience, stack_note: $stack_note, claude_model: $claude_model,
+    audience: $audience, stack_note: $stack_note, ai_model: $ai_model,
     worker_name: $worker_name}' > "$CONFIG"
 echo "  + scripts/slack-agent/automation.config.json"
 
@@ -149,7 +151,7 @@ settings:
 
 3. GitHub secrets on $GITHUB_REPO:
      gh secret set SLACK_BOT_TOKEN -R $GITHUB_REPO
-     gh secret set CLAUDE_CODE_OAUTH_TOKEN -R $GITHUB_REPO   # or ANTHROPIC_API_KEY
+     gh secret set ${BRAIN_AUTH_VARS%% *} -R $GITHUB_REPO   # brain auth ($BRAIN_NAME) — any one of: $BRAIN_AUTH_VARS
 
 4. Invite the bot to the triage channels: /invite @$(printf '%s' "$AGENT_NAME")
 
