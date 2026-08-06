@@ -195,6 +195,18 @@ installer's brain chooser with capability gating (`mediated` mode per recipe).
 `core/runtimes/` + `core/relays/`: GitLab CI (incl. relay-less trigger-token mode), Docker-server (webhook receiver + compose, Ollama-ready), Bitbucket. State scripts already runtime-neutral.
 *Done when: runtime is an installer question and each has a smoke-test doc.*
 
+Status (2026-08-06): **Docker-server shipped with full parity for all
+relay-driven recipes and zero per-recipe porting** — the receiver executes
+each recipe's Cloudflare Worker verbatim (Node's native Request/Response +
+WebCrypto) and intercepts only the dispatch call, turning it into a local
+queued run; verified live against a real installed worker (signature accept +
+reject + queued driver run). **GitLab CI v1 shipped as relay-less reconcile
+mode** via pipeline trigger tokens, honest limits documented. Remaining =
+Phase 3b: the `gh`/`glab` host-CLI abstraction (unlocks implement/escalation
+on GitLab-hosted repos + Bitbucket), per-item GitLab dispatch, and the
+installer runtime question (today: Actions is what installers render;
+docker-server/gitlab-ci apply as documented overlays).
+
 **Phase 4 — More tools** · size M per tool
 Order: **Linear** (best API — validates that the project-agent core is truly reusable) → **Jira** → **Trello** → **ClickUp** → **Slack triage-agent** (new pattern) → **LINE notify**.
 *Done when: each recipe passes the same 15-minute stranger test.*

@@ -77,7 +77,7 @@ automations/<tool>/<recipe>/
 
 Every recipe in this repo follows these rules:
 
-1. **Event-driven, not polling.** Webhooks wake the automation; free-tier relays (Cloudflare Workers) bridge to GitHub Actions. Zero idle cost, no servers to maintain.
+1. **Event-driven, not polling.** Webhooks wake the automation; free-tier relays (Cloudflare Workers) bridge to GitHub Actions. Zero idle cost, no servers to maintain — or run everything on your own box with the [Docker-server runtime](core/runtimes/docker-server) (flat cost, Ollama-ready), or relay-less on [GitLab CI](core/runtimes/gitlab-ci).
 2. **Webhooks are doorbells, not data.** Payloads only trigger a run — every run re-fetches the truth from the tool's API and diffs against saved state. Duplicate, stale, or missed events are harmless, and there's always a manual "reconcile" button.
 3. **Humans stay in charge.** Agents write comments and open pull requests. They never move cards, merge PRs, close tickets, or delete anything. The board/tracker belongs to your team.
 4. **State lives in git.** Per-item state is JSON on an orphan branch — no database, fully inspectable, versioned for free.

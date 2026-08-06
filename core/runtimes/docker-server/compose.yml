@@ -1,0 +1,25 @@
+# Docker-server runtime — run your installed agents on your own box.
+#   1. cp env.example .env   (fill it in — never commit .env)
+#   2. docker compose up -d --build
+#   3. point each tool's webhook at https://<your-host>/<agent-name>/hook[...]
+# Put a TLS proxy (Caddy shown below, commented) or a Cloudflare Tunnel in front.
+
+services:
+  agents:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8787:8787"
+    volumes:
+      - repo:/repo
+
+  # caddy:
+  #   image: caddy:2
+  #   restart: unless-stopped
+  #   ports: ["80:80", "443:443"]
+  #   command: caddy reverse-proxy --from https://agents.example.com --to agents:8787
+  #   depends_on: [agents]
+
+volumes:
+  repo:

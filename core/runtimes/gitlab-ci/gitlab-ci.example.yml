@@ -1,0 +1,33 @@
+# GitLab CI runtime — relay-less reconcile mode.
+#
+# GitLab pipeline trigger tokens accept the token in the URL, so most tools
+# can webhook STRAIGHT into GitLab with no relay at all:
+#
+#   https://gitlab.com/api/v4/projects/<PROJECT_ID>/ref/main/trigger/pipeline?token=<TRIGGER_TOKEN>
+#
+# Every delivery triggers a RECONCILE run — the payload is ignored entirely,
+# which is exactly what the doorbell pattern was built for: the run re-fetches
+# truth from the tool's API and diffs against saved state. Copy this job into
+# your repo's .gitlab-ci.yml and adjust AGENT_DIR.
+
+agent-reconcile:
+  image: node:20-bookworm-slim
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'        # manual reconcile button
+  timeout: 30m
+  variables:
+    AGENT_DIR: scripts/clickup-agent            # ← your installed agent
+    GIT_STRATEGY: clone
+    GIT_DEPTH: 0
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git jq curl perl > /dev/null
+    - bash -c "source $AGENT_DIR/ai/brain.sh && ai_install"
+    - bash -c "source $AGENT_DIR/ai/brain.sh && ai_check"
+  script:
+    # No ITEM_ID → full reconcile of watched columns/statuses + tracked items.
+    - bash $AGENT_DIR/agent-run.sh
+  artifacts:
+    when: always
+    paths: [.agent-out/]
+    expire_in: 30 days
