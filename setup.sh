@@ -5,6 +5,7 @@
 #   ./setup.sh                      interactive picker
 #   ./setup.sh --list               list available recipes
 #   ./setup.sh <tool>/<recipe>      run one directly, e.g. ./setup.sh basecamp/board-agent
+#   ./setup.sh doctor <repo-path>   health-check every agent installed in a repo
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -50,6 +51,11 @@ run_recipe() {
 case "${1:-}" in
   --list|-l)
     list
+    ;;
+  doctor)
+    [[ -n "${2:-}" ]] || { echo "usage: ./setup.sh doctor <path-to-target-repo>" >&2; exit 1; }
+    source "$ROOT/core/lib/doctor.sh"
+    doctor "$ROOT" "$2"
     ;;
   "")
     echo "ai-automations — pick an automation to set up:"
