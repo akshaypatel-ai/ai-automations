@@ -13,3 +13,7 @@ ENABLED_HANDLERS = "{{HANDLERS}}"
 WATCHED_COLUMNS = "{{BC_COL_ANALYZE}},{{BC_COL_IMPLEMENT}}"
 WATCHED_TODOLIST = "{{BC_TODOLIST_ID}}"
 AGENT_MARKER = "{{AGENT_MARKER}}"
+
+# Optional — retarget the doorbell to another runtime (default: GitHub Actions; see core/runtimes/):
+# DISPATCH_KIND = "gitlab"     # + GITLAB_TRIGGER_URL / GITLAB_REF vars, GITLAB_TRIGGER_TOKEN secret
+# DISPATCH_KIND = "bitbucket"  # + BITBUCKET_WORKSPACE / BITBUCKET_REPO vars, BITBUCKET_TOKEN secret

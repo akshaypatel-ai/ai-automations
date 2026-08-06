@@ -1,4 +1,4 @@
-# GitLab CI runtime — relay-less reconcile mode (v1)
+# GitLab CI runtime — reconcile mode (v1) + per-item dispatch
 
 The cheapest possible ingress: **no relay, no Cloudflare account, nothing to
 deploy**. GitLab pipeline trigger tokens ride in the URL, so any tool whose
@@ -25,18 +25,50 @@ doorbells can only waste a pipeline run, never inject data.
    `.gitlab-ci.yml`, set `AGENT_DIR`.
 5. Point the tool's webhook at the trigger URL.
 
-## Honest limits of v1
+## Per-item mode (relay + `DISPATCH_KIND=gitlab`)
 
-- **Reconcile-only granularity**: every doorbell scans the watched
-  columns/statuses + tracked items (a few extra API reads per event vs. the
-  relay's per-item dispatch). Fine at team scale; the relay+dispatch mode for
-  GitLab is Phase 3b.
-- **Playbooks that write to GitHub** need `gh` + a GitHub-hosted repo — on a
-  GitLab-hosted repo, `analyze`/`respond`/triage-note flows work today, but
-  `implement` (merge requests via `glab`) and GitHub-issue escalation need the
-  host-CLI abstraction — also Phase 3b. Until then: project recipes run
-  analyze/discuss loops on GitLab; keep implement-enabled installs on
-  GitHub-hosted repos.
+If you want the relay's signature verification, noise filtering, and per-item
+granularity back, keep the recipe's Cloudflare Worker and retarget its
+dispatch — no worker-code changes:
+
+1. In the deployed relay's `wrangler.toml` `[vars]`:
+   `DISPATCH_KIND = "gitlab"`, `GITLAB_TRIGGER_URL =
+   "https://gitlab.com/api/v4/projects/<PROJECT_ID>/trigger/pipeline"`, and
+   optionally `GITLAB_REF` (default `main`).
+2. Secret: `wrangler secret put GITLAB_TRIGGER_TOKEN` (the same trigger token).
+3. Point the tool's webhook at the Worker as usual.
+
+The relay then triggers the pipeline with `variables[ITEM_ID]`,
+`variables[ITEM_TYPE]`, `variables[EVENT_KIND]` (plus the ask/notify extras
+when present), and the `agent-item` job in the example runs exactly that item;
+deliveries the relay filters out never start a pipeline at all.
+
+## `gh` shim (experimental)
+
+Playbooks that write back to the host speak `gh`. On a GitLab-hosted repo,
+install the [`core/hosts/`](../../hosts/) gh→glab shim once:
+
+```sh
+mkdir -p scripts/gh-shim
+cp <ai-automations>/core/hosts/gh-shim-gitlab.sh scripts/gh-shim/gh
+chmod +x scripts/gh-shim/gh
+```
+
+and uncomment the PATH line in the example. With `glab` authenticated on the
+runner (project access token in `GITLAB_TOKEN` — `CI_JOB_TOKEN` can't create
+MRs/issues), `implement` opens merge requests and escalation files GitLab
+issues. Treat as **experimental**: the shim covers exactly the surface the
+shipped playbooks use and exits loudly (64) on anything else.
+
+## Honest limits
+
+- **Relay-less mode is reconcile-only granularity**: every doorbell scans the
+  watched columns/statuses + tracked items (a few extra API reads per event
+  vs. per-item dispatch). Fine at team scale — or use per-item mode above.
+- **`implement`/escalation on GitLab go through the shim** and are
+  experimental; the notify recipes stay GitHub-native (their triggers are
+  GitHub releases/workflow runs). First-class host adapters are the remaining
+  Phase 3b work.
 - **The trigger token is the auth** — treat it like a secret (it can only
   start pipelines, nothing else).
 - State-in-git works unchanged (orphan branch on the GitLab remote).

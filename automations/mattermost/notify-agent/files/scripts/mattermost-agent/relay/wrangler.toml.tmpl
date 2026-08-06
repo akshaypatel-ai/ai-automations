@@ -15,3 +15,7 @@ TRIGGER = "{{TRIGGER}}"
 # (bot-loop guard; the structural protection is Mattermost's own: webhook
 # posts never fire outgoing webhooks).
 AGENT_MARKER = "{{AGENT_NAME}}"
+
+# Optional — retarget the doorbell to another runtime (default: GitHub Actions; see core/runtimes/):
+# DISPATCH_KIND = "gitlab"     # + GITLAB_TRIGGER_URL / GITLAB_REF vars, GITLAB_TRIGGER_TOKEN secret
+# DISPATCH_KIND = "bitbucket"  # + BITBUCKET_WORKSPACE / BITBUCKET_REPO vars, BITBUCKET_TOKEN secret

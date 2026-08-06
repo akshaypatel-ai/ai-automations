@@ -12,3 +12,7 @@ ENABLED_HANDLERS = "{{HANDLERS}}"
 # Optional: a Vercel project id — deliveries for other projects are dropped at
 # the edge. Empty forwards every project the webhook is scoped to.
 WATCHED_PROJECT = "{{VERCEL_PROJECT_ID}}"
+
+# Optional — retarget the doorbell to another runtime (default: GitHub Actions; see core/runtimes/):
+# DISPATCH_KIND = "gitlab"     # + GITLAB_TRIGGER_URL / GITLAB_REF vars, GITLAB_TRIGGER_TOKEN secret
+# DISPATCH_KIND = "bitbucket"  # + BITBUCKET_WORKSPACE / BITBUCKET_REPO vars, BITBUCKET_TOKEN secret

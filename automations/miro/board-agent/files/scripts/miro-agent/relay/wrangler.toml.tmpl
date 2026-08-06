@@ -14,3 +14,7 @@ ENABLED_HANDLERS = "{{HANDLERS}}"
 TRIGGER = "{{TRIGGER}}"
 AGENT_MARKER = "{{AGENT_MARKER}}"
 WATCHED_BOARD = "{{MIRO_BOARD_ID}}"
+
+# Optional — retarget the doorbell to another runtime (default: GitHub Actions; see core/runtimes/):
+# DISPATCH_KIND = "gitlab"     # + GITLAB_TRIGGER_URL / GITLAB_REF vars, GITLAB_TRIGGER_TOKEN secret
+# DISPATCH_KIND = "bitbucket"  # + BITBUCKET_WORKSPACE / BITBUCKET_REPO vars, BITBUCKET_TOKEN secret

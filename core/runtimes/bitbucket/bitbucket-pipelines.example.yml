@@ -1,0 +1,33 @@
+# Bitbucket Pipelines runtime — per-item dispatch via the recipe relay (v1).
+#
+# The recipe's Cloudflare relay does the hard part exactly as on GitHub
+# (signature verification, noise filtering); set DISPATCH_KIND = "bitbucket"
+# in its wrangler.toml and it starts this `agent` custom pipeline through the
+# Bitbucket API with ITEM_ID / ITEM_TYPE / EVENT_KIND pipeline variables —
+# agent-run.sh reads them straight from the environment.
+#
+# Copy into your repo's bitbucket-pipelines.yml and adjust AGENT_DIR.
+
+image: node:20-bookworm-slim
+
+clone:
+  depth: full          # state branch + diffs need real history
+
+pipelines:
+  custom:
+    agent:
+      - variables:     # filled by the relay dispatch; empty ITEM_ID → reconcile
+          - name: ITEM_ID
+          - name: ITEM_TYPE
+          - name: EVENT_KIND
+      - step:
+          name: agent-run
+          max-time: 30
+          script:
+            - export AGENT_DIR=scripts/clickup-agent   # ← your installed agent
+            - apt-get update -qq && apt-get install -y -qq git jq curl perl > /dev/null
+            - bash -c "source $AGENT_DIR/ai/brain.sh && ai_install"
+            - bash -c "source $AGENT_DIR/ai/brain.sh && ai_check"
+            - bash $AGENT_DIR/agent-run.sh
+          artifacts:
+            - .agent-out/**

@@ -201,11 +201,20 @@ each recipe's Cloudflare Worker verbatim (Node's native Request/Response +
 WebCrypto) and intercepts only the dispatch call, turning it into a local
 queued run; verified live against a real installed worker (signature accept +
 reject + queued driver run). **GitLab CI v1 shipped as relay-less reconcile
-mode** via pipeline trigger tokens, honest limits documented. Remaining =
-Phase 3b: the `gh`/`glab` host-CLI abstraction (unlocks implement/escalation
-on GitLab-hosted repos + Bitbucket), per-item GitLab dispatch, and the
-installer runtime question (today: Actions is what installers render;
-docker-server/gitlab-ci apply as documented overlays).
+mode** via pipeline trigger tokens, honest limits documented. **Phase 3b
+chunk 1 shipped**: every relay worker now routes through a shared
+`dispatch()` abstraction — `DISPATCH_KIND` (github default / gitlab /
+bitbucket) retargets the doorbell with zero worker-code changes and
+byte-identical GitHub behavior when unset; the gh→glab shim
+(`core/hosts/gh-shim-gitlab.sh`) translates the exact `gh` surface the
+playbooks use (MRs, issues, comments, dedupe lists — loud exit 64 outside
+it), making implement/escalation on GitLab-hosted repos possible
+(experimental); the GitLab template gained a per-item `agent-item` job; and
+Bitbucket Pipelines v1 landed (`core/runtimes/bitbucket/`,
+analyze/respond/triage flows). Remaining 3b: the installer runtime question
+(today: Actions is what installers render; the other runtimes apply as
+documented overlays) and first-class host adapters (native PR/issue
+write-back on GitLab/Bitbucket instead of the shim).
 
 **Phase 4 — More tools** · size M per tool
 Order: **Linear** (best API — validates that the project-agent core is truly reusable) → **Jira** → **Trello** → **ClickUp** → **Slack triage-agent** (new pattern) → **LINE notify**.

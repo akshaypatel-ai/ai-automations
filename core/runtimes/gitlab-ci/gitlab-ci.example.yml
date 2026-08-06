@@ -1,20 +1,26 @@
-# GitLab CI runtime — relay-less reconcile mode.
+# GitLab CI runtime — reconcile mode + per-item dispatch.
 #
-# GitLab pipeline trigger tokens accept the token in the URL, so most tools
-# can webhook STRAIGHT into GitLab with no relay at all:
+# Two ways a doorbell gets in:
 #
-#   https://gitlab.com/api/v4/projects/<PROJECT_ID>/ref/main/trigger/pipeline?token=<TRIGGER_TOKEN>
+#  1. Relay-less reconcile (v1): GitLab pipeline trigger tokens accept the
+#     token in the URL, so most tools can webhook STRAIGHT into GitLab with
+#     no relay at all:
 #
-# Every delivery triggers a RECONCILE run — the payload is ignored entirely,
-# which is exactly what the doorbell pattern was built for: the run re-fetches
-# truth from the tool's API and diffs against saved state. Copy this job into
-# your repo's .gitlab-ci.yml and adjust AGENT_DIR.
+#       https://gitlab.com/api/v4/projects/<PROJECT_ID>/ref/main/trigger/pipeline?token=<TRIGGER_TOKEN>
+#
+#     The payload is ignored entirely — the run re-fetches truth from the
+#     tool's API and diffs against saved state (the doorbell pattern).
+#
+#  2. Per-item dispatch: keep the recipe's Cloudflare relay and set
+#     DISPATCH_KIND = "gitlab" in its wrangler.toml (plus GITLAB_TRIGGER_URL
+#     var + GITLAB_TRIGGER_TOKEN secret). The relay verifies and filters as
+#     usual, then triggers this pipeline with variables[ITEM_ID] /
+#     [ITEM_TYPE] / [EVENT_KIND] — the agent-item job runs just that item.
+#
+# Copy both jobs into your repo's .gitlab-ci.yml and adjust AGENT_DIR.
 
-agent-reconcile:
+.agent-base:
   image: node:20-bookworm-slim
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "trigger"'
-    - if: '$CI_PIPELINE_SOURCE == "web"'        # manual reconcile button
   timeout: 30m
   variables:
     AGENT_DIR: scripts/clickup-agent            # ← your installed agent
@@ -22,12 +28,32 @@ agent-reconcile:
     GIT_DEPTH: 0
   before_script:
     - apt-get update -qq && apt-get install -y -qq git jq curl perl > /dev/null
+    # Optional — gh→glab shim so implement/escalation playbooks can write
+    # MRs/issues on this GitLab repo (experimental; see core/hosts/README.md):
+    # - export PATH="$CI_PROJECT_DIR/scripts/gh-shim:$PATH"
     - bash -c "source $AGENT_DIR/ai/brain.sh && ai_install"
     - bash -c "source $AGENT_DIR/ai/brain.sh && ai_check"
-  script:
-    # No ITEM_ID → full reconcile of watched columns/statuses + tracked items.
-    - bash $AGENT_DIR/agent-run.sh
   artifacts:
     when: always
     paths: [.agent-out/]
     expire_in: 30 days
+
+# Per-item run — ITEM_ID/ITEM_TYPE/EVENT_KIND are already in the environment
+# as trigger variables from the relay (DISPATCH_KIND=gitlab).
+agent-item:
+  extends: .agent-base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $ITEM_ID'
+  script:
+    - bash $AGENT_DIR/agent-run.sh
+
+# Reconcile run — trigger with no ITEM_ID (relay-less mode, or a relay
+# heartbeat) plus the manual button.
+agent-reconcile:
+  extends: .agent-base
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "trigger" && $ITEM_ID == null'
+    - if: '$CI_PIPELINE_SOURCE == "web"'        # manual reconcile button
+  script:
+    # No ITEM_ID → full reconcile of watched columns/statuses + tracked items.
+    - bash $AGENT_DIR/agent-run.sh

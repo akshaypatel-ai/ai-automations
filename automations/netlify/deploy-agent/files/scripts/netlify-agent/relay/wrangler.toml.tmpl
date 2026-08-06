@@ -13,3 +13,7 @@ ENABLED_HANDLERS = "{{HANDLERS}}"
 # Optional: a Netlify site id (API ID) — deliveries for other sites are dropped
 # at the edge. Empty forwards every site whose notifications point here.
 WATCHED_SITE = "{{NETLIFY_SITE_ID}}"
+
+# Optional — retarget the doorbell to another runtime (default: GitHub Actions; see core/runtimes/):
+# DISPATCH_KIND = "gitlab"     # + GITLAB_TRIGGER_URL / GITLAB_REF vars, GITLAB_TRIGGER_TOKEN secret
+# DISPATCH_KIND = "bitbucket"  # + BITBUCKET_WORKSPACE / BITBUCKET_REPO vars, BITBUCKET_TOKEN secret

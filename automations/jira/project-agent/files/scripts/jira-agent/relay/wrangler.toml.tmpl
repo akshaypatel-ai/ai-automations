@@ -12,3 +12,7 @@ ENABLED_HANDLERS = "{{HANDLERS}}"
 PROJECT_KEY = "{{JIRA_PROJECT_KEY}}"
 WATCHED_STATUSES = "{{STATUS_ANALYZE}},{{STATUS_IMPLEMENT}}"
 AGENT_MARKER = "{{AGENT_MARKER}}"
+
+# Optional — retarget the doorbell to another runtime (default: GitHub Actions; see core/runtimes/):
+# DISPATCH_KIND = "gitlab"     # + GITLAB_TRIGGER_URL / GITLAB_REF vars, GITLAB_TRIGGER_TOKEN secret
+# DISPATCH_KIND = "bitbucket"  # + BITBUCKET_WORKSPACE / BITBUCKET_REPO vars, BITBUCKET_TOKEN secret
