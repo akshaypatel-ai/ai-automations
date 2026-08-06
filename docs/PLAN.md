@@ -182,10 +182,14 @@ Core wizard lib + `basecamp/project-agent` on **GitHub Actions + Claude Code** (
 
 Status (2026-08-06): contract v2 shipped (`ai_install`, `CAN_RUN_TOOLS`,
 `AI_AUTH_VARS`, `AI_DEFAULT_MODEL`) with adapters for Codex CLI and Gemini CLI
-(full tool parity) plus Aider and raw-Anthropic (text-only class — hidden by
-the chooser until **Phase 2b: driver-mediated write-back**, where the driver
-posts what a text-only brain returns). `core/lib/brains.sh` is the installer's
-brain chooser with capability gating.
+(full tool parity) plus Aider and raw-Anthropic (text-only class).
+**Phase 2b: driver-mediated write-back** shipped for the 15 notify/summon/
+triage recipes — the driver assembles the full context (fetching the item's
+data itself for triage), the text-only brain replies with the message body,
+and the driver delivers it and writes the result file. The remaining
+text-only gaps (GitHub escalation, `implement`, and the shapes whose write
+path is `gh` itself) stay tool-only by design. `core/lib/brains.sh` is the
+installer's brain chooser with capability gating (`mediated` mode per recipe).
 
 **Phase 3 — Pluggable runtimes** · size L
 `core/runtimes/` + `core/relays/`: GitLab CI (incl. relay-less trigger-token mode), Docker-server (webhook receiver + compose, Ollama-ready), Bitbucket. State scripts already runtime-neutral.

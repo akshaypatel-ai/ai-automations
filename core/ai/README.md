@@ -27,12 +27,17 @@ Every shipped playbook makes the brain *act through tools*: post a comment via
 `./comment.sh`, open a PR via `gh`, fetch context via `./api.sh`. That requires
 `CAN_RUN_TOOLS=1` — an agentic CLI with shell execution.
 
-Text-only brains (`CAN_RUN_TOOLS=0`: Aider, raw API adapters) can't drive
-those playbooks: nothing would ever get posted. They ship here so the contract
-and auth wiring are real, but the installer's brain chooser
-(`core/lib/brains.sh`) lists them as not-yet-usable. Making them first-class
-means **driver-mediated write-back** (the driver posts what the brain returns)
-— tracked as Phase 2b in [docs/PLAN.md](../../docs/PLAN.md).
+Text-only brains (`CAN_RUN_TOOLS=0`: Aider, raw API adapters) can't drive those
+playbooks themselves — so on the **notify, summon, and triage** shapes the
+driver does it for them (**driver-mediated write-back**, Phase 2b): the driver
+assembles all context into the prompt (for triage it fetches the ticket itself,
+since the brain can't), the brain replies with plain text, and the driver
+delivers that text through the recipe's own helper and writes the result file.
+The trade-off is honest and real: no GitHub escalation, no `implement`, and the
+project shapes plus recipes whose write path is `gh` itself (Sentry, Vercel,
+Netlify, Buildkite, Slack) still need a tool-running brain. The chooser
+(`core/lib/brains.sh`) offers text-only brains only where a recipe opts in
+with `mediated` mode.
 
 ## Available
 
@@ -41,9 +46,9 @@ means **driver-mediated write-back** (the driver posts what the brain returns)
 | `claude-code.sh` | Agentic CLI (Claude Code; subscription token or API key) | ✅ | ✅ default |
 | `codex.sh` | Agentic CLI (OpenAI Codex; `OPENAI_API_KEY` or `codex login`) | ✅ | ✅ |
 | `gemini-cli.sh` | Agentic CLI (Gemini; generous free tier) | ✅ | ✅ |
-| `aider.sh` | Edit-capable pair programmer, model-agnostic incl. Ollama/local | ❌ | ⏸ Phase 2b (driver-mediated write-back) |
-| `api-anthropic.sh` | Raw Messages API (curl+jq, no CLI) | ❌ | ⏸ Phase 2b |
-| `api-openai.sh` / `api-gemini.sh` | Raw APIs | ❌ | 🔜 with Phase 2b |
+| `aider.sh` | Edit-capable pair programmer, model-agnostic incl. Ollama/local | ❌ | ✅ via driver-mediated mode (notify, summon, and triage shapes; no GitHub escalation, no implement) |
+| `api-anthropic.sh` | Raw Messages API (curl+jq, no CLI) | ❌ | ✅ via driver-mediated mode (same shapes and limits) |
+| `api-openai.sh` / `api-gemini.sh` | Raw APIs | ❌ | 🔜 |
 
 ## Caveats worth knowing before switching brains
 

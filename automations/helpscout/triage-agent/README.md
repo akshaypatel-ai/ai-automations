@@ -41,6 +41,8 @@ installer prints the exact steps — My Apps → Create App for the id/secret
 pair, and Manage → Apps → Webhooks for the callback URL, Secret Key, and the
 three events to select.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 Internal notes only (`note.sh` posts to the `/notes` endpoint — structurally

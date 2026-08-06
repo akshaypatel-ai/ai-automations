@@ -40,6 +40,8 @@ conventions. Secrets: `PAGERDUTY_TOKEN`, Claude auth (+ optional
 installer prints the exact clicks that create the v3 webhook subscription —
 and warns that its signing secret is shown only once.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 Notes only — the agent never acknowledges, resolves, assigns, escalates, or

@@ -38,6 +38,8 @@ conventions. Secrets: `ZENDESK_EMAIL`, `ZENDESK_API_TOKEN`, Claude auth
 The installer prints the exact Admin Center steps for the webhook and the two
 triggers whose JSON bodies define the payload.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 Internal notes only (`note.sh` hardcodes `public: false` — structurally cannot

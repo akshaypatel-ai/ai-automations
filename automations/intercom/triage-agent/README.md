@@ -39,6 +39,8 @@ Secrets: `INTERCOM_TOKEN`, Claude auth (+ optional `AGENT_GH_PAT`); relay:
 Developer Hub steps — the webhook endpoint, the three topics to subscribe,
 and where the access token and client secret live.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 Internal notes only (`note.sh` hardcodes `message_type: "note"` — structurally

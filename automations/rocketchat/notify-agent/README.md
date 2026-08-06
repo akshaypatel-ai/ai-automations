@@ -48,6 +48,8 @@ Asks for: target repo, which workflows to monitor for incidents, handlers,
 the trigger word, and conventions. Secrets: `ROCKETCHAT_WEBHOOK_URL` + Claude
 auth; relay (ask only): `GITHUB_PAT`, `ROCKETCHAT_OUTGOING_TOKEN`.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 One message per event; size cap enforced; no invented features, no

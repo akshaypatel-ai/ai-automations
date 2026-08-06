@@ -46,6 +46,8 @@ for incidents, handlers, and conventions. Secrets: `TELEGRAM_BOT_TOKEN` (from
 `TELEGRAM_WEBHOOK_SECRET`. The installer prints the `setWebhook` registration
 `curl`.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 Pushes only to the configured chat (relay drops every other chat); one

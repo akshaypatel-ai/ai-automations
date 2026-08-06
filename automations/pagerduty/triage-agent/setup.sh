@@ -54,7 +54,7 @@ ask AGENT_NAME "Agent display name (opens every note)" "$(d agent_name 'Incident
 AGENT_MARKER="🤖 $AGENT_NAME"
 ask PROJECT_NAME "Product name used in notes" "$(d project_name "$(basename "$TARGET")")"
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
-choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
+choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')" mediated
 ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
 
 repo_slug=$(basename "$TARGET" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')

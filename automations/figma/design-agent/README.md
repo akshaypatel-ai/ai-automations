@@ -49,6 +49,8 @@ emits), and conventions. Secrets: `FIGMA_TOKEN` (scopes
 `FIGMA_PASSCODE`. The installer prints the webhook-creation `curl` with your
 worker URL filled in.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 ONE reply per summon, always to the thread root; comments only — never edits

@@ -39,6 +39,8 @@ and conventions. Secrets: `DISCORD_WEBHOOK_URL` + Claude auth; relay (ask
 only): `GITHUB_PAT`, `DISCORD_PUBLIC_KEY`. The installer prints the slash
 command registration `curl`.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 One message per event; 2000-char cap enforced; no invented features, no

@@ -41,6 +41,8 @@ conventions. Secrets: `FRESHDESK_API_KEY`, Claude auth (+ optional
 the exact Admin steps for the two automation rules whose JSON bodies define
 the payload.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 Private notes only (`note.sh` hardcodes `private: true` — structurally cannot

@@ -30,6 +30,8 @@ Asks for: target repo, LINE push target id, which workflows to monitor for
 incidents, handlers, and conventions. Secrets: `LINE_CHANNEL_ACCESS_TOKEN` +
 Claude auth; relay (ask only): `GITHUB_PAT`, `LINE_CHANNEL_SECRET`.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 Pushes only to the configured target (no broadcast); one message per event;

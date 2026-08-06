@@ -56,7 +56,7 @@ ask AGENT_NAME "Agent display name" "$(d agent_name 'Notify Agent')"
 ask PROJECT_NAME "Product name used in messages" "$(d project_name "$(basename "$TARGET")")"
 ask AUDIENCE "Who reads the space? (messages are written for them)" "$(d audience 'the team')"
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
-choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
+choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')" mediated
 ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
 
 say "Summary"

@@ -56,6 +56,8 @@ board's team) + Claude auth; relay: `GITHUB_PAT`, `WEBHOOK_SECRET`. The
 installer prints the board-subscription `curl` with your worker URL filled
 in.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 ONE reply sticky per summon, placed beside the question; that sticky is the

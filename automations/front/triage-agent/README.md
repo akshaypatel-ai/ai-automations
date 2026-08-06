@@ -39,6 +39,8 @@ Secrets: `FRONT_TOKEN` (Settings → Developers → API tokens), Claude auth
 installer prints the exact rule setup — When "Inbound message is received" →
 Then "Send to a webhook" — plus the optional teammate-reply rule.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 Internal comments only (`note.sh` posts to the `/comments` endpoint — a stream

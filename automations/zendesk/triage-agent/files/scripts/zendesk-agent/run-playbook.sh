@@ -18,9 +18,40 @@ state='{}'
 rm -f "$RESULT_FILE"
 mkdir -p "$OUT_DIR"
 
+# Text-only mode support: the brain can't fetch anything itself, so the
+# driver inlines the source material into the prompt (best effort, capped).
+fetch_capped() {
+  local out
+  if out="$("$SCRIPT_DIR/api.sh" GET "$1" 2>/dev/null)"; then
+    head -c 10000 <<<"$out"
+    echo
+  else
+    echo "(fetch failed)"
+  fi
+}
+
 prompt_file="$OUT_DIR/prompt-$ITEM_ID-$PLAYBOOK.md"
 {
   cat "$SCRIPT_DIR/playbooks/$PLAYBOOK.md"
+  if [[ "${CAN_RUN_TOOLS:-1}" == "0" ]]; then
+    echo
+    echo "## Item data (fetched for text-only mode)"
+    echo
+    echo "### Ticket"
+    fetch_capped "/tickets/$ITEM_ID.json"
+    echo
+    echo "### Comments"
+    fetch_capped "/tickets/$ITEM_ID/comments.json"
+    cat <<'EOF'
+
+## TEXT-ONLY MODE (overrides delivery instructions above)
+
+You cannot run commands, fetch anything, or escalate to GitHub in this
+mode. Using ONLY the information already present in this prompt, reply
+with ONLY the internal note body (start it with the agent marker). The
+system posts it for you.
+EOF
+  fi
   cat <<EOF
 
 ---
@@ -46,3 +77,20 @@ ai_run "$prompt_file" "$transcript"
 
 # Surface the final summary in the CI log; the full stream stays in the artifact.
 ai_result "$transcript"
+
+# Driver-mediated write-back: a text-only brain can't run the note helper —
+# its reply IS the note, and this driver posts it. GitHub escalation is
+# unavailable in this mode (documented capability trade-off).
+if [[ "${CAN_RUN_TOOLS:-1}" == "0" ]]; then
+  body="$(ai_result "$transcript")"
+  if [[ -z "$body" ]]; then
+    echo "error: text-only brain returned an empty note body — nothing posted" >&2
+    exit 1
+  fi
+  body_file="$OUT_DIR/body-$ITEM_ID-$PLAYBOOK.txt"
+  printf '%s\n' "$body" > "$body_file"
+  "$SCRIPT_DIR/note.sh" "$ITEM_ID" "$body_file"
+  jq -n --argjson s "$state" \
+    '{phase: "triaged", category: "", issue_url: ($s.issue_url // "")}' \
+    > "$RESULT_FILE"
+fi

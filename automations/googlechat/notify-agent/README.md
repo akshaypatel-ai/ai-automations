@@ -39,6 +39,8 @@ Asks for: target repo, which workflows to monitor for incidents, handlers,
 and conventions. Secrets: `GCHAT_WEBHOOK_URL` (space → ⚙ → Apps &
 integrations → Webhooks → Add → copy URL) + Claude auth.
 
+Text-only brains (Aider, raw API) work here via driver-mediated delivery — pick them at the brain question.
+
 ## Guardrails
 
 One message per event; ~4096-char cap enforced (truncated at 3900); no

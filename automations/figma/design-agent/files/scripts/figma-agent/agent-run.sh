@@ -51,6 +51,17 @@ rm -f "$RESULT_FILE"
 prompt_file="$OUT_DIR/prompt-$MODE.md"
 {
   cat "$SCRIPTS/playbooks/$MODE.md"
+  if [[ "${CAN_RUN_TOOLS:-1}" == "0" ]]; then
+    cat <<'EOF'
+
+## TEXT-ONLY MODE (overrides delivery instructions above)
+
+You cannot run commands or scripts. Do NOT attempt tool calls, do NOT
+write a result file. Reply with ONLY the final message body, exactly as
+it should be delivered — no preamble, no commentary. The system
+delivers it for you.
+EOF
+  fi
   echo
   echo "---"
   echo
@@ -77,3 +88,19 @@ echo "running playbook '$MODE' (brain: $AI_NAME, model: ${AI_MODEL:-default})"
 transcript="$OUT_DIR/transcript-$MODE.jsonl"
 ai_run "$prompt_file" "$transcript"
 ai_result "$transcript"
+
+# Driver-mediated write-back: a text-only brain can't run the reply helper —
+# its reply IS the answer body, and this driver delivers it.
+if [[ "${CAN_RUN_TOOLS:-1}" == "0" ]]; then
+  body="$(ai_result "$transcript")"
+  if [[ -z "$body" ]]; then
+    echo "error: text-only brain returned an empty reply body — nothing delivered" >&2
+    exit 1
+  fi
+  body_file="$OUT_DIR/body-$MODE.txt"
+  printf '%s\n' "$body" > "$body_file"
+  "$SCRIPTS/reply.sh" "$FILE_KEY" "$ROOT_ID" "$body_file"
+  case "$MODE" in
+    ask) printf '{"phase": "answered"}\n' > "$RESULT_FILE" ;;
+  esac
+fi
