@@ -48,7 +48,8 @@ with `mediated` mode.
 | `gemini-cli.sh` | Agentic CLI (Gemini; generous free tier) | ✅ | ✅ |
 | `aider.sh` | Edit-capable pair programmer, model-agnostic incl. Ollama/local | ❌ | ✅ via driver-mediated mode (notify, summon, and triage shapes; no GitHub escalation, no implement) |
 | `api-anthropic.sh` | Raw Messages API (curl+jq, no CLI) | ❌ | ✅ via driver-mediated mode (same shapes and limits) |
-| `api-openai.sh` / `api-gemini.sh` | Raw APIs | ❌ | 🔜 |
+| `api-openai.sh` | Raw Chat Completions API (curl+jq, no CLI) | ❌ | ✅ via driver-mediated mode (same shapes and limits) |
+| `api-gemini.sh` | Raw generateContent API (curl+jq; free tier = cheapest brain here) | ❌ | ✅ via driver-mediated mode (same shapes and limits) |
 
 ## Caveats worth knowing before switching brains
 
