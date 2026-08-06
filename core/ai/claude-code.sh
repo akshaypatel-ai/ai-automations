@@ -12,7 +12,14 @@
 
 AI_NAME="claude-code"
 CAN_EDIT_REPO=1
+CAN_RUN_TOOLS=1
 HAS_TRANSCRIPT=1
+AI_AUTH_VARS="CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY"
+AI_DEFAULT_MODEL="claude-sonnet-5"
+
+ai_install() {
+  npm install -g @anthropic-ai/claude-code
+}
 
 ai_check() {
   command -v claude >/dev/null 2>&1 || {
@@ -27,10 +34,11 @@ ai_check() {
 
 # Stream-JSON with an arrival timestamp per event, so the transcript shows
 # where playbook time actually goes (per tool call), not just the final text.
+# AI_MODEL is the generic knob; CLAUDE_MODEL kept for pre-Phase-2 installs.
 ai_run() {
   local prompt_file="$1" transcript="$2"
   claude -p \
-    --model "${CLAUDE_MODEL:-claude-sonnet-5}" \
+    --model "${AI_MODEL:-${CLAUDE_MODEL:-claude-sonnet-5}}" \
     --dangerously-skip-permissions \
     --output-format stream-json --verbose \
     < "$prompt_file" \

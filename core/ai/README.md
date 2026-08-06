@@ -5,28 +5,54 @@ implementing the same contract, so recipes stay provider-neutral: playbooks are
 plain markdown prompts, and the installer copies the chosen adapter into the
 target repo as `<agent-dir>/ai/brain.sh`.
 
-## Contract
+## Contract (v2)
 
 ```bash
 AI_NAME="claude-code"        # identifier for logs
-CAN_EDIT_REPO=1              # may modify files / push branches (agentic CLI) — 0 for text-only API brains
-HAS_TRANSCRIPT=1             # ai_run writes a machine-readable transcript
+CAN_EDIT_REPO=1              # may modify files / push branches — 0 for text-only API brains
+CAN_RUN_TOOLS=1              # may execute shell commands (helper scripts, gh) — see the two classes below
+HAS_TRANSCRIPT=1             # ai_run writes a transcript file
+AI_AUTH_VARS="..."           # space-separated secret names CI must provide (any ONE may suffice — ai_check decides)
+AI_DEFAULT_MODEL="..."       # seed for the installer's model question (runs read $AI_MODEL)
 
-ai_check                     # → 0 when deps + credentials look usable (called by installers/doctor)
+ai_install                   # install the CLI inside the CI runner (no-op for raw-API brains)
+ai_check                     # → 0 when deps + credentials look usable (called by installers/doctor/CI)
 ai_run <prompt_file> <transcript_out>    # run headless in $PWD; non-zero exit = playbook failed
 ai_result <transcript_out>   # print the run's final summary text (for CI logs)
 ```
 
-Recipes declare what they need: a playbook that writes code (`implement`)
-requires `CAN_EDIT_REPO=1`; analyze/respond-style playbooks don't. The
-installer only offers compatible brains.
+## The two brain classes — an honest distinction
+
+Every shipped playbook makes the brain *act through tools*: post a comment via
+`./comment.sh`, open a PR via `gh`, fetch context via `./api.sh`. That requires
+`CAN_RUN_TOOLS=1` — an agentic CLI with shell execution.
+
+Text-only brains (`CAN_RUN_TOOLS=0`: Aider, raw API adapters) can't drive
+those playbooks: nothing would ever get posted. They ship here so the contract
+and auth wiring are real, but the installer's brain chooser
+(`core/lib/brains.sh`) lists them as not-yet-usable. Making them first-class
+means **driver-mediated write-back** (the driver posts what the brain returns)
+— tracked as Phase 2b in [docs/PLAN.md](../../docs/PLAN.md).
 
 ## Available
 
-| Adapter | Kind | Status |
-|---|---|---|
-| `claude-code.sh` | Agentic CLI (Claude Code, subscription token or API key) | ✅ |
-| `codex.sh` | Agentic CLI (OpenAI Codex) | 🔜 Phase 2 |
-| `gemini-cli.sh` | Agentic CLI (Gemini, free tier) | 🔜 Phase 2 |
-| `aider.sh` | Agentic CLI, model-agnostic incl. Ollama/local | 🔜 Phase 2 |
-| `api-anthropic.sh` / `api-openai.sh` / `api-gemini.sh` | Raw API (text-only, curl+jq) | 🔜 Phase 2 |
+| Adapter | Kind | Tools | Status |
+|---|---|---|---|
+| `claude-code.sh` | Agentic CLI (Claude Code; subscription token or API key) | ✅ | ✅ default |
+| `codex.sh` | Agentic CLI (OpenAI Codex; `OPENAI_API_KEY` or `codex login`) | ✅ | ✅ |
+| `gemini-cli.sh` | Agentic CLI (Gemini; generous free tier) | ✅ | ✅ |
+| `aider.sh` | Edit-capable pair programmer, model-agnostic incl. Ollama/local | ❌ | ⏸ Phase 2b (driver-mediated write-back) |
+| `api-anthropic.sh` | Raw Messages API (curl+jq, no CLI) | ❌ | ⏸ Phase 2b |
+| `api-openai.sh` / `api-gemini.sh` | Raw APIs | ❌ | 🔜 with Phase 2b |
+
+## Caveats worth knowing before switching brains
+
+- The playbooks were battle-tested with Claude Code. Codex/Gemini run the same
+  prompts, but per-brain output quality varies — the playbooks state *outcomes*
+  (one comment, marker prefix, result file) precisely so weaker models fail
+  loudly rather than subtly.
+- `ai_check` runs in CI before any playbook; a missing secret fails the run
+  with a clear message instead of a half-executed playbook.
+- Transcripts differ by brain: Claude Code and Codex emit event streams; the
+  Gemini CLI transcript is its timestamped stdout. All land in the same
+  `.agent-out/` artifact.

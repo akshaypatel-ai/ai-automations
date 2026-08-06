@@ -180,6 +180,13 @@ Core wizard lib + `basecamp/project-agent` on **GitHub Actions + Claude Code** (
 `core/ai/` adapter contract + Codex CLI, Gemini CLI, Aider, and raw-API adapters. Capability gating (implement needs `CAN_EDIT_REPO`). Brain question added to the wizard; per-runtime auth-secret mapping.
 *Done when: the same Basecamp recipe runs on all three CLIs by changing one answer.*
 
+Status (2026-08-06): contract v2 shipped (`ai_install`, `CAN_RUN_TOOLS`,
+`AI_AUTH_VARS`, `AI_DEFAULT_MODEL`) with adapters for Codex CLI and Gemini CLI
+(full tool parity) plus Aider and raw-Anthropic (text-only class — hidden by
+the chooser until **Phase 2b: driver-mediated write-back**, where the driver
+posts what a text-only brain returns). `core/lib/brains.sh` is the installer's
+brain chooser with capability gating.
+
 **Phase 3 — Pluggable runtimes** · size L
 `core/runtimes/` + `core/relays/`: GitLab CI (incl. relay-less trigger-token mode), Docker-server (webhook receiver + compose, Ollama-ready), Bitbucket. State scripts already runtime-neutral.
 *Done when: runtime is an installer question and each has a smoke-test doc.*
