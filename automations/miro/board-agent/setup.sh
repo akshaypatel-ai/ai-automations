@@ -9,6 +9,7 @@ FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
 source "$ROOT/core/lib/brains.sh"
+source "$ROOT/core/lib/runtimes.sh"
 
 need git jq curl
 
@@ -60,6 +61,7 @@ ask AUDIENCE "Who asks the questions? (replies are written for them)" "$(d audie
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
 choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')" mediated
 ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
+choose_runtime "$ROOT/core/runtimes" "$(d runtime 'github-actions')"
 
 repo_slug=$(basename "$TARGET" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
 WORKER_NAME="$(d worker_name "${repo_slug}-miro-relay")"
@@ -70,7 +72,7 @@ cat <<EOF
   GitHub repo        $GITHUB_REPO
   Summon             sticky notes starting with '$TRIGGER'
   Watched board      $MIRO_BOARD_ID
-  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL
+  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL · runtime $RUNTIME_NAME
   Writes             ONE reply sticky beside the question — never edits, moves, or deletes anything else
   Relay worker       $WORKER_NAME
 EOF
@@ -92,14 +94,16 @@ mkdir -p "$AGENT_DIR/ai"
 install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
 echo "  + scripts/miro-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
+runtime_render_ci "$RUNTIME_NAME" "$ROOT/core/runtimes" "$AGENT_DIR" "scripts/miro-agent"
 
 jq -n \
+  --arg runtime "$RUNTIME_NAME" \
   --arg github_repo "$GITHUB_REPO" --arg miro_board_id "$MIRO_BOARD_ID" \
   --arg trigger "$TRIGGER" --arg agent_name "$AGENT_NAME" \
   --arg project_name "$PROJECT_NAME" --arg audience "$AUDIENCE" \
   --arg stack_note "$STACK_NOTE" --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" \
   --arg worker_name "$WORKER_NAME" \
-  '{recipe: "miro/board-agent", runtime: "github-actions", brain: $brain,
+  '{recipe: "miro/board-agent", runtime: $runtime, brain: $brain,
     handlers: "stickies", github_repo: $github_repo, miro_board_id: $miro_board_id,
     trigger: $trigger, agent_name: $agent_name,
     project_name: $project_name, audience: $audience,
@@ -113,15 +117,17 @@ say "GitHub secrets"
 note "Required on $GITHUB_REPO:"
 note "  MIRO_TOKEN — Miro → Settings → Your apps → app access token (boards:read + boards:write, installed to the board's team)"
 note "  $BRAIN_AUTH_VARS — auth for the $BRAIN_NAME brain"
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
-    for s in MIRO_TOKEN $BRAIN_AUTH_VARS; do
-      if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
-    done
+if [[ "$RUNTIME_NAME" == "github-actions" ]]; then
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
+      for s in MIRO_TOKEN $BRAIN_AUTH_VARS; do
+        if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
+      done
+    fi
+  else
+    note "gh CLI not available/authenticated — set the secrets manually at:"
+    note "  https://github.com/$GITHUB_REPO/settings/secrets/actions"
   fi
-else
-  note "gh CLI not available/authenticated — set the secrets manually at:"
-  note "  https://github.com/$GITHUB_REPO/settings/secrets/actions"
 fi
 
 say "Next steps (in order)"
@@ -163,3 +169,4 @@ cat <<EOF
 
 Operating docs: scripts/miro-agent/README.md
 EOF
+runtime_overlay "$RUNTIME_NAME" "scripts/miro-agent" "$WORKER_NAME" "$BRAIN_AUTH_VARS" "MIRO_TOKEN"

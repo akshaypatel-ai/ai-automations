@@ -211,10 +211,17 @@ playbooks use (MRs, issues, comments, dedupe lists — loud exit 64 outside
 it), making implement/escalation on GitLab-hosted repos possible
 (experimental); the GitLab template gained a per-item `agent-item` job; and
 Bitbucket Pipelines v1 landed (`core/runtimes/bitbucket/`,
-analyze/respond/triage flows). Remaining 3b: the installer runtime question
-(today: Actions is what installers render; the other runtimes apply as
-documented overlays) and first-class host adapters (native PR/issue
-write-back on GitLab/Bitbucket instead of the shim).
+analyze/respond/triage flows). **Phase 3b chunk 2 shipped**: runtime is now
+an installer question on all 27 relay-driven recipes
+(`core/lib/runtimes.sh` — `choose_runtime` mirrors the brain chooser,
+answer saved in `automation.config.json`; gitlab-ci/bitbucket installs
+render the example CI file into the agent dir with `AGENT_DIR` pre-set, and
+a per-runtime next-steps overlay prints only the differences from the
+GitHub Actions path; the gh-secrets offer runs only when the runtime is
+github-actions). The 7 notify recipes and GitHub Issues stay Actions-native
+by design (GitHub-native triggers) — meeting the phase's done-criterion.
+Remaining 3b: first-class host adapters only (native PR/issue write-back on
+GitLab/Bitbucket — glab, Bitbucket API — instead of the shim).
 
 **Phase 4 — More tools** · size M per tool
 Order: **Linear** (best API — validates that the project-agent core is truly reusable) → **Jira** → **Trello** → **ClickUp** → **Slack triage-agent** (new pattern) → **LINE notify**.

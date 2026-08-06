@@ -9,6 +9,7 @@ FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
 source "$ROOT/core/lib/brains.sh"
+source "$ROOT/core/lib/runtimes.sh"
 
 need git jq curl
 
@@ -63,6 +64,7 @@ ask PROJECT_NAME "Product name used in issues" "$(d project_name "$(basename "$T
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
 choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
 ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
+choose_runtime "$ROOT/core/runtimes" "$(d runtime 'github-actions')"
 
 repo_slug=$(basename "$TARGET" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
 WORKER_NAME="$(d worker_name "${repo_slug}-sentry-relay")"
@@ -73,7 +75,7 @@ cat <<EOF
   GitHub repo        $GITHUB_REPO
   Sentry             $SENTRY_ORG / $SENTRY_PROJECT  ($SENTRY_API_BASE)
   Issue label        $ISSUE_LABEL
-  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL
+  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL · runtime $RUNTIME_NAME
   Relay worker       $WORKER_NAME
 EOF
 confirm "Install into $TARGET?" || { echo "aborted — nothing written"; exit 1; }
@@ -96,14 +98,16 @@ mkdir -p "$AGENT_DIR/ai"
 install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
 echo "  + scripts/sentry-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
+runtime_render_ci "$RUNTIME_NAME" "$ROOT/core/runtimes" "$AGENT_DIR" "scripts/sentry-agent"
 
 jq -n \
+  --arg runtime "$RUNTIME_NAME" \
   --arg github_repo "$GITHUB_REPO" --arg sentry_api_base "$SENTRY_API_BASE" \
   --arg sentry_org "$SENTRY_ORG" --arg sentry_project "$SENTRY_PROJECT" \
   --arg issue_label "$ISSUE_LABEL" --arg agent_name "$AGENT_NAME" \
   --arg project_name "$PROJECT_NAME" --arg stack_note "$STACK_NOTE" \
   --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" --arg worker_name "$WORKER_NAME" \
-  '{recipe: "sentry/triage-agent", runtime: "github-actions", brain: $brain,
+  '{recipe: "sentry/triage-agent", runtime: $runtime, brain: $brain,
     handlers: "issues", github_repo: $github_repo, sentry_api_base: $sentry_api_base,
     sentry_org: $sentry_org, sentry_project: $sentry_project,
     issue_label: $issue_label, agent_name: $agent_name,
@@ -117,15 +121,17 @@ say "GitHub secrets"
 note "Required on $GITHUB_REPO:"
 note "  SENTRY_TOKEN — the Internal Integration's token (project:read + event:read), or a user auth token"
 note "  $BRAIN_AUTH_VARS — auth for the $BRAIN_NAME brain"
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
-    for s in SENTRY_TOKEN $BRAIN_AUTH_VARS AGENT_GH_PAT; do
-      if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
-    done
+if [[ "$RUNTIME_NAME" == "github-actions" ]]; then
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
+      for s in SENTRY_TOKEN $BRAIN_AUTH_VARS AGENT_GH_PAT; do
+        if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
+      done
+    fi
+  else
+    note "gh CLI not available/authenticated — set the secrets manually at:"
+    note "  https://github.com/$GITHUB_REPO/settings/secrets/actions"
   fi
-else
-  note "gh CLI not available/authenticated — set the secrets manually at:"
-  note "  https://github.com/$GITHUB_REPO/settings/secrets/actions"
 fi
 
 say "Next steps (in order)"
@@ -163,3 +169,4 @@ cat <<EOF
 
 Operating docs (recovery, pausing, transcripts): scripts/sentry-agent/README.md
 EOF
+runtime_overlay "$RUNTIME_NAME" "scripts/sentry-agent" "$WORKER_NAME" "$BRAIN_AUTH_VARS" "SENTRY_TOKEN"

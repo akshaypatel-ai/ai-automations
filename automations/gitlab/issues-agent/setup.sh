@@ -9,6 +9,7 @@ FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
 source "$ROOT/core/lib/brains.sh"
+source "$ROOT/core/lib/runtimes.sh"
 
 need git jq curl
 
@@ -71,6 +72,7 @@ ask PR_BASE "Base branch for agent PRs" "$(d pr_base "$default_base")"
 ask_opt QA_COMMAND "Quick QA command before a PR (e.g. 'npm run lint')" "$(d qa_command '')"
 choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
 ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
+choose_runtime "$ROOT/core/runtimes" "$(d runtime 'github-actions')"
 
 if [[ -n "$QA_COMMAND" ]]; then
   QA_NOTE="Quick check only: run \`$QA_COMMAND\` and fix what it flags. Do NOT run the full test suite or heavy tooling in this runner — that happens in the PR's CI."
@@ -88,7 +90,7 @@ cat <<EOF
   GitLab             $GITLAB_API_BASE · project $GITLAB_PROJECT_ID
   Analyze label      $LABEL_ANALYZE
   Implement label    $LABEL_IMPLEMENT
-  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL
+  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL · runtime $RUNTIME_NAME
   Branches           $BRANCH_PREFIX/gl-<iid>-<slug> → PRs into $PR_BASE
   Quick QA           ${QA_COMMAND:-none (PR CI only)}
   Relay worker       $WORKER_NAME
@@ -113,8 +115,10 @@ mkdir -p "$AGENT_DIR/ai"
 install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
 echo "  + scripts/gitlab-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
+runtime_render_ci "$RUNTIME_NAME" "$ROOT/core/runtimes" "$AGENT_DIR" "scripts/gitlab-agent"
 
 jq -n \
+  --arg runtime "$RUNTIME_NAME" \
   --arg github_repo "$GITHUB_REPO" --arg gitlab_api_base "$GITLAB_API_BASE" \
   --arg gitlab_project_id "$GITLAB_PROJECT_ID" --arg label_analyze "$LABEL_ANALYZE" \
   --arg label_implement "$LABEL_IMPLEMENT" --arg agent_name "$AGENT_NAME" \
@@ -122,7 +126,7 @@ jq -n \
   --arg stack_note "$STACK_NOTE" --arg branch_prefix "$BRANCH_PREFIX" \
   --arg pr_base "$PR_BASE" --arg qa_command "$QA_COMMAND" \
   --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" --arg worker_name "$WORKER_NAME" \
-  '{recipe: "gitlab/issues-agent", runtime: "github-actions", brain: $brain,
+  '{recipe: "gitlab/issues-agent", runtime: $runtime, brain: $brain,
     handlers: "issues", github_repo: $github_repo, gitlab_api_base: $gitlab_api_base,
     gitlab_project_id: $gitlab_project_id, label_analyze: $label_analyze,
     label_implement: $label_implement, agent_name: $agent_name,
@@ -137,15 +141,17 @@ say "GitHub secrets"
 note "Required on $GITHUB_REPO:"
 note "  GITLAB_TOKEN — GitLab → Preferences → Access tokens (scope: api)"
 note "  $BRAIN_AUTH_VARS — auth for the $BRAIN_NAME brain"
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
-    for s in GITLAB_TOKEN $BRAIN_AUTH_VARS AGENT_GH_PAT; do
-      if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
-    done
+if [[ "$RUNTIME_NAME" == "github-actions" ]]; then
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
+      for s in GITLAB_TOKEN $BRAIN_AUTH_VARS AGENT_GH_PAT; do
+        if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
+      done
+    fi
+  else
+    note "gh CLI not available/authenticated — set the secrets manually at:"
+    note "  https://github.com/$GITHUB_REPO/settings/secrets/actions"
   fi
-else
-  note "gh CLI not available/authenticated — set the secrets manually at:"
-  note "  https://github.com/$GITHUB_REPO/settings/secrets/actions"
 fi
 
 say "Next steps (in order)"
@@ -188,3 +194,4 @@ cat <<EOF
 
 Operating docs (recovery, pausing, transcripts): scripts/gitlab-agent/README.md
 EOF
+runtime_overlay "$RUNTIME_NAME" "scripts/gitlab-agent" "$WORKER_NAME" "$BRAIN_AUTH_VARS" "GITLAB_TOKEN"

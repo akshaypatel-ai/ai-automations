@@ -9,6 +9,7 @@ FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
 source "$ROOT/core/lib/brains.sh"
+source "$ROOT/core/lib/runtimes.sh"
 
 need git jq curl
 
@@ -56,6 +57,7 @@ ask AUDIENCE "Who chats with the agent? (replies are written for them)" "$(d aud
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
 choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
 ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
+choose_runtime "$ROOT/core/runtimes" "$(d runtime 'github-actions')"
 
 repo_slug=$(basename "$TARGET" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
 WORKER_NAME="$(d worker_name "${repo_slug}-slack-relay")"
@@ -67,7 +69,7 @@ cat <<EOF
   Handlers           $HANDLERS
   Triage channels    ${WATCHED_CHANNELS:-none (mentions/emoji/DM only)}
   Trigger emoji      $TRIGGER_EMOJI
-  Agent              $AGENT_NAME · brain $BRAIN_NAME · model $AI_MODEL
+  Agent              $AGENT_NAME · brain $BRAIN_NAME · model $AI_MODEL · runtime $RUNTIME_NAME
   Relay worker       $WORKER_NAME
 EOF
 confirm "Install into $TARGET?" || { echo "aborted — nothing written"; exit 1; }
@@ -90,14 +92,16 @@ mkdir -p "$AGENT_DIR/ai"
 install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
 echo "  + scripts/slack-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
+runtime_render_ci "$RUNTIME_NAME" "$ROOT/core/runtimes" "$AGENT_DIR" "scripts/slack-agent"
 
 jq -n \
+  --arg runtime "$RUNTIME_NAME" \
   --arg github_repo "$GITHUB_REPO" --arg handlers "$HANDLERS" \
   --arg watched_channels "$WATCHED_CHANNELS" --arg trigger_emoji "$TRIGGER_EMOJI" \
   --arg agent_name "$AGENT_NAME" --arg project_name "$PROJECT_NAME" \
   --arg audience "$AUDIENCE" --arg stack_note "$STACK_NOTE" \
   --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" --arg worker_name "$WORKER_NAME" \
-  '{recipe: "slack/triage-agent", runtime: "github-actions", brain: $brain,
+  '{recipe: "slack/triage-agent", runtime: $runtime, brain: $brain,
     handlers: $handlers, github_repo: $github_repo, watched_channels: $watched_channels,
     trigger_emoji: $trigger_emoji, agent_name: $agent_name, project_name: $project_name,
     audience: $audience, stack_note: $stack_note, ai_model: $ai_model,
@@ -163,3 +167,4 @@ settings:
 
 Operating docs: scripts/slack-agent/README.md
 EOF
+runtime_overlay "$RUNTIME_NAME" "scripts/slack-agent" "$WORKER_NAME" "$BRAIN_AUTH_VARS" "SLACK_BOT_TOKEN"

@@ -9,6 +9,7 @@ FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
 source "$ROOT/core/lib/brains.sh"
+source "$ROOT/core/lib/runtimes.sh"
 
 need git jq curl
 
@@ -64,6 +65,7 @@ ask PROJECT_NAME "Product name used in issues" "$(d project_name "$(basename "$T
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
 choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')"
 ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
+choose_runtime "$ROOT/core/runtimes" "$(d runtime 'github-actions')"
 
 repo_slug=$(basename "$TARGET" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
 WORKER_NAME="$(d worker_name "${repo_slug}-vercel-relay")"
@@ -74,7 +76,7 @@ cat <<EOF
   GitHub repo        $GITHUB_REPO
   Vercel             team ${VERCEL_TEAM_ID:-"(personal)"} · project ${VERCEL_PROJECT_ID:-"(all)"}
   Issue label        $ISSUE_LABEL
-  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL
+  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL · runtime $RUNTIME_NAME
   Relay worker       $WORKER_NAME
 EOF
 confirm "Install into $TARGET?" || { echo "aborted — nothing written"; exit 1; }
@@ -97,14 +99,16 @@ mkdir -p "$AGENT_DIR/ai"
 install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
 echo "  + scripts/vercel-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
+runtime_render_ci "$RUNTIME_NAME" "$ROOT/core/runtimes" "$AGENT_DIR" "scripts/vercel-agent"
 
 jq -n \
+  --arg runtime "$RUNTIME_NAME" \
   --arg github_repo "$GITHUB_REPO" --arg vercel_team_id "$VERCEL_TEAM_ID" \
   --arg vercel_project_id "$VERCEL_PROJECT_ID" \
   --arg issue_label "$ISSUE_LABEL" --arg agent_name "$AGENT_NAME" \
   --arg project_name "$PROJECT_NAME" --arg stack_note "$STACK_NOTE" \
   --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" --arg worker_name "$WORKER_NAME" \
-  '{recipe: "vercel/deploy-agent", runtime: "github-actions", brain: $brain,
+  '{recipe: "vercel/deploy-agent", runtime: $runtime, brain: $brain,
     handlers: "deployments", github_repo: $github_repo,
     vercel_team_id: $vercel_team_id, vercel_project_id: $vercel_project_id,
     issue_label: $issue_label, agent_name: $agent_name,
@@ -118,15 +122,17 @@ say "GitHub secrets"
 note "Required on $GITHUB_REPO:"
 note "  VERCEL_TOKEN — Account Settings → Tokens (vercel.com/account/tokens); scope it to the team when the project lives in one"
 note "  $BRAIN_AUTH_VARS — auth for the $BRAIN_NAME brain"
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
-    for s in VERCEL_TOKEN $BRAIN_AUTH_VARS AGENT_GH_PAT; do
-      if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
-    done
+if [[ "$RUNTIME_NAME" == "github-actions" ]]; then
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
+      for s in VERCEL_TOKEN $BRAIN_AUTH_VARS AGENT_GH_PAT; do
+        if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
+      done
+    fi
+  else
+    note "gh CLI not available/authenticated — set the secrets manually at:"
+    note "  https://github.com/$GITHUB_REPO/settings/secrets/actions"
   fi
-else
-  note "gh CLI not available/authenticated — set the secrets manually at:"
-  note "  https://github.com/$GITHUB_REPO/settings/secrets/actions"
 fi
 
 say "Next steps (in order)"
@@ -160,3 +166,4 @@ cat <<EOF
 
 Operating docs (recovery, pausing, transcripts): scripts/vercel-agent/README.md
 EOF
+runtime_overlay "$RUNTIME_NAME" "scripts/vercel-agent" "$WORKER_NAME" "$BRAIN_AUTH_VARS" "VERCEL_TOKEN"

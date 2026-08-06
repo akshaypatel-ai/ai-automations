@@ -9,6 +9,7 @@ FILES="$RECIPE_DIR/files"
 source "$ROOT/core/lib/wizard.sh"
 source "$ROOT/core/lib/render.sh"
 source "$ROOT/core/lib/brains.sh"
+source "$ROOT/core/lib/runtimes.sh"
 
 need git jq curl
 
@@ -56,6 +57,7 @@ ask AUDIENCE "Who is the audience? (draft replies are written for them)" "$(d au
 ask STACK_NOTE "One-line stack note for the agent" "$(d stack_note 'follow the conventions in CLAUDE.md / README')"
 choose_brain "$ROOT/core/ai" "$(d brain 'claude-code')" mediated
 ask AI_MODEL "Model for $BRAIN_NAME" "$(d ai_model "$AI_MODEL_DEFAULT")"
+choose_runtime "$ROOT/core/runtimes" "$(d runtime 'github-actions')"
 
 repo_slug=$(basename "$TARGET" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
 WORKER_NAME="$(d worker_name "${repo_slug}-front-relay")"
@@ -65,7 +67,7 @@ cat <<EOF
   Target repo        $TARGET
   GitHub repo        $GITHUB_REPO
   Escalation         GitHub issues labeled '$ESCALATION_LABEL'
-  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL
+  Agent              $AGENT_MARKER · brain $BRAIN_NAME · model $AI_MODEL · runtime $RUNTIME_NAME
   Writes             internal comments only — humans send every customer reply
   Relay worker       $WORKER_NAME
 EOF
@@ -89,14 +91,16 @@ mkdir -p "$AGENT_DIR/ai"
 install -m 0644 "$BRAIN_FILE" "$AGENT_DIR/ai/brain.sh"
 echo "  + scripts/front-agent/ai/brain.sh  ($BRAIN_NAME)"
 chmod +x "$AGENT_DIR"/*.sh
+runtime_render_ci "$RUNTIME_NAME" "$ROOT/core/runtimes" "$AGENT_DIR" "scripts/front-agent"
 
 jq -n \
+  --arg runtime "$RUNTIME_NAME" \
   --arg github_repo "$GITHUB_REPO" \
   --arg escalation_label "$ESCALATION_LABEL" --arg agent_name "$AGENT_NAME" \
   --arg project_name "$PROJECT_NAME" --arg audience "$AUDIENCE" \
   --arg stack_note "$STACK_NOTE" --arg brain "$BRAIN_NAME" --arg ai_model "$AI_MODEL" \
   --arg worker_name "$WORKER_NAME" \
-  '{recipe: "front/triage-agent", runtime: "github-actions", brain: $brain,
+  '{recipe: "front/triage-agent", runtime: $runtime, brain: $brain,
     handlers: "conversations", github_repo: $github_repo,
     escalation_label: $escalation_label,
     agent_name: $agent_name, project_name: $project_name, audience: $audience,
@@ -110,15 +114,17 @@ say "GitHub secrets"
 note "Required on $GITHUB_REPO:"
 note "  FRONT_TOKEN — Front → Settings → Developers → API tokens (scopes: shared resources)"
 note "  $BRAIN_AUTH_VARS — auth for the $BRAIN_NAME brain"
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
-    for s in FRONT_TOKEN $BRAIN_AUTH_VARS AGENT_GH_PAT; do
-      if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
-    done
+if [[ "$RUNTIME_NAME" == "github-actions" ]]; then
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    if confirm "Set secrets on $GITHUB_REPO now with gh?"; then
+      for s in FRONT_TOKEN $BRAIN_AUTH_VARS AGENT_GH_PAT; do
+        if confirm "  set $s?"; then gh secret set "$s" -R "$GITHUB_REPO"; fi
+      done
+    fi
+  else
+    note "gh CLI not available/authenticated — set the secrets manually at:"
+    note "  https://github.com/$GITHUB_REPO/settings/secrets/actions"
   fi
-else
-  note "gh CLI not available/authenticated — set the secrets manually at:"
-  note "  https://github.com/$GITHUB_REPO/settings/secrets/actions"
 fi
 
 say "Next steps (in order)"
@@ -159,3 +165,4 @@ cat <<EOF
 
 Operating docs (recovery, pausing, transcripts): scripts/front-agent/README.md
 EOF
+runtime_overlay "$RUNTIME_NAME" "scripts/front-agent" "$WORKER_NAME" "$BRAIN_AUTH_VARS" "FRONT_TOKEN"

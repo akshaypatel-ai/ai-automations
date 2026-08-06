@@ -34,7 +34,14 @@ Retargeting a relay is one var: every relay worker carries the same
 
 ## Picking one
 
-- **Just want it working**: GitHub Actions — it's what every installer sets up.
+Every relay-driven recipe's installer now **asks** ("Runtime", right after
+the brain question) and saves the answer in `automation.config.json`:
+gitlab-ci/bitbucket installs get the example CI file rendered into the agent
+dir with `AGENT_DIR` pre-set, and the next-steps end with a per-runtime
+overlay of just the differences. Only the notify recipes and GitHub Issues
+skip the question (GitHub-native triggers).
+
+- **Just want it working**: GitHub Actions — the default answer; zero infra.
 - **Frequent long runs** (implement playbooks, 15–20 min): a $5 VPS with
   docker-server beats metered minutes within a handful of runs a day — and
   it's the only path to fully-local models.
