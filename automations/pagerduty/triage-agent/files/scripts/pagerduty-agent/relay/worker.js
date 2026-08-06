@@ -53,10 +53,20 @@ async function validSignature(secret, rawBody, header) {
  *   gitlab           — needs GITLAB_TRIGGER_URL var (https://gitlab.com/api/v4/projects/<id>/trigger/pipeline)
  *                      + GITLAB_TRIGGER_TOKEN secret + GITLAB_REF var (default main)
  *   bitbucket        — needs BITBUCKET_WORKSPACE/BITBUCKET_REPO vars + BITBUCKET_TOKEN secret (Bearer)
+ *   url              — any HTTPS job runner; needs DISPATCH_URL var + optional DISPATCH_TOKEN secret
  * Returns a fetch Response; callers keep their existing resp.ok handling.
  */
 async function dispatch(env, eventType, clientPayload) {
   const mode = env.DISPATCH_KIND || 'github';
+  if (mode === 'url') {
+    const headers = { 'Content-Type': 'application/json', 'User-Agent': 'ai-automations-pagerduty-relay' };
+    if (env.DISPATCH_TOKEN) headers.Authorization = `Bearer ${env.DISPATCH_TOKEN}`;
+    return fetch(env.DISPATCH_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ event_type: eventType, client_payload: clientPayload }),
+    });
+  }
   if (mode === 'gitlab' || mode === 'bitbucket') {
     const map = {
       ITEM_ID: clientPayload.item_id, ITEM_TYPE: clientPayload.item_type,

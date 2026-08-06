@@ -1,0 +1,40 @@
+# Serverless runtime — Lambda container image for lambda-handler.mjs.
+#
+# Same toolchain as core/runtimes/docker-server/Dockerfile (git, jq, curl,
+# gh, perl), rebased onto the AWS Lambda Node.js 20 base (Amazon Linux 2023).
+# The repo is NOT baked in: Lambda's filesystem is read-only except /tmp, so
+# the handler clones into $REPO_DIR (/tmp/repo) on cold start using
+# GITHUB_REPO + GITHUB_PAT env vars.
+#
+# Build & push (see README.md for the full walkthrough):
+#   docker build -f Dockerfile.lambda -t agent-lambda .
+#   docker tag agent-lambda <acct>.dkr.ecr.<region>.amazonaws.com/agent-lambda:latest
+#   docker push <acct>.dkr.ecr.<region>.amazonaws.com/agent-lambda:latest
+
+FROM public.ecr.aws/lambda/nodejs:20
+
+# AL2023 minimal images ship dnf (fall back to microdnf just in case).
+# curl-minimal is preinstalled on AL2023 and provides `curl` for the scripts.
+RUN (command -v dnf >/dev/null 2>&1 && PM=dnf || PM=microdnf) \
+    && $PM install -y git jq tar gzip perl findutils \
+    && $PM clean all
+
+# gh CLI — official release tarball (no rpm repo needed on the Lambda base).
+ARG GH_VERSION=2.63.2
+RUN ARCH=$(uname -m) && case "$ARCH" in \
+      x86_64) GH_ARCH=amd64 ;; \
+      aarch64) GH_ARCH=arm64 ;; \
+      *) echo "unsupported arch: $ARCH" && exit 1 ;; \
+    esac \
+    && curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${GH_ARCH}.tar.gz" \
+       | tar -xz -C /tmp \
+    && install -m 0755 "/tmp/gh_${GH_VERSION}_linux_${GH_ARCH}/bin/gh" /usr/local/bin/gh \
+    && rm -rf /tmp/gh_*
+
+COPY lambda-handler.mjs ${LAMBDA_TASK_ROOT}/
+
+# /tmp is the only writable path at runtime: repo checkout AND HOME (git/gh
+# want to write config) both live there.
+ENV REPO_DIR=/tmp/repo HOME=/tmp
+
+CMD ["lambda-handler.handler"]

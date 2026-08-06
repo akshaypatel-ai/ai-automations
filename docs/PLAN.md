@@ -220,6 +220,15 @@ a per-runtime next-steps overlay prints only the differences from the
 GitHub Actions path; the gh-secrets offer runs only when the runtime is
 github-actions). The 7 notify recipes and GitHub Issues stay Actions-native
 by design (GitHub-native triggers) — meeting the phase's done-criterion.
+**Serverless target shipped** (`core/runtimes/serverless/`): the shared
+`dispatch()` gained a fourth kind — `DISPATCH_KIND=url` POSTs the exact
+GitHub-dispatch payload shape (`{event_type, client_payload}`, optional
+bearer) to any HTTPS job runner — plus a ready-to-use AWS Lambda container
+handler (synchronous agent-run, cold-start clone into /tmp, honest 15-min
+cap: analyze/respond/triage yes, `implement` no) and deployment docs for
+running the docker-server receiver unchanged on Cloud Run (direct
+tool→receiver webhooks, 60-min timeout) and Fly.io (always-on micro), with
+a per-run cost table and the ~150-long-runs/month VPS crossover.
 Remaining 3b: first-class host adapters only (native PR/issue write-back on
 GitLab/Bitbucket — glab, Bitbucket API — instead of the shim).
 
