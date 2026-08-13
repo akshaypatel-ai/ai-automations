@@ -5,7 +5,7 @@
 Clone the repo, run one command, answer a few questions — and you have a production-grade AI automation wired into your stack. No servers to run, no cron jobs to babysit, no databases to maintain.
 
 ```bash
-git clone https://github.com/makasanakshay/ai-automations.git
+git clone https://github.com/akshaypatel-ai/ai-automations.git
 cd ai-automations
 ./setup.sh
 ```
