@@ -29,7 +29,7 @@ This repo ships *installers* and *templates* — the running system lives in
   URL secrets where the tool signs nothing — each recipe README states which,
   honestly).
 - **No secrets in git**: installers prompt for IDs, never tokens; tokens go to
-  secret stores. CI on this repo runs secret scanning to keep it that way.
+  secret stores.
 - **Disposable execution**: `--dangerously-skip-permissions` (and equivalents)
   run only inside throwaway CI runners, never on your machine — local runs are
   `DRY_RUN` and stop before any AI call.
