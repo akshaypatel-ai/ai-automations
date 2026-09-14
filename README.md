@@ -21,10 +21,10 @@ board — via toggleable per-event handlers you pick at install time.
 |---|---|---|---|
 | [`basecamp/project-agent`](automations/basecamp/project-agent) | Basecamp | Attaches to all Basecamp events via handlers: card board (analyze → discuss → PR), to-dos, messages, docs & files, check-ins, schedule. | ✅ Ready |
 | [`linear/project-agent`](automations/linear/project-agent) | Linear | Board flow via workflow states (analyze → discuss → PR), HMAC-verified webhooks, GraphQL; relay routes all resource types. | 🧪 Beta |
-| [`jira/project-agent`](automations/jira/project-agent) | Jira | Board flow via status transitions; relay routes all Jira webhook events (issues, comments, sprints, versions, worklogs). | 🧪 Beta |
+| [`jira/project-agent`](automations/jira/project-agent) | Jira | Board flow via status transitions; relay routes all Jira webhook events (issues, comments, sprints, versions, worklogs). | ✅ Ready |
 | [`trello/project-agent`](automations/trello/project-agent) | Trello | Board flow via list moves; HEAD-handshake relay routes all board actions. | 🧪 Beta |
 | [`clickup/project-agent`](automations/clickup/project-agent) | ClickUp | Board flow via status changes; HMAC-verified relay routes all webhook events. | 🧪 Beta |
-| [`slack/triage-agent`](automations/slack/triage-agent) | Slack | Answers mentions/DMs from the repo, triages channels, escalates bugs as issues; signed Events API relay with 3s ack. | 🧪 Beta |
+| [`slack/triage-agent`](automations/slack/triage-agent) | Slack | Answers mentions/DMs from the repo, triages channels, escalates bugs as issues; signed Events API relay with 3s ack. | ✅ Ready |
 | [`line/notify-agent`](automations/line/notify-agent) | LINE | AI-written ship/incident notifications (GitHub-native triggers, no relay) + group Q&A. | 🧪 Beta |
 | [`github/issues-agent`](automations/github/issues-agent) | GitHub Issues | Label-driven board flow (analyze → discuss → PR) — the relay-free recipe: native Actions triggers, no webhook, no extra token. | 🧪 Beta |
 | [`asana/project-agent`](automations/asana/project-agent) | Asana | Board flow via sections; relay handles the X-Hook-Secret handshake + HMAC and routes all webhook events. | 🧪 Beta |

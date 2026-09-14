@@ -6,7 +6,7 @@ FAQs, escalates real bugs as GitHub issues with the thread permalink), and a
 **trigger emoji** summons it onto any message. It never writes code from chat —
 build requests get redirected to your board/tracker.
 
-Status: **beta** — needs live-fire testing against a real workspace.
+Status: **stable** — live-fire tested against a real Slack workspace.
 
 ## Event coverage
 
@@ -45,10 +45,10 @@ Threaded replies only (never new channel messages, DMs to others, or
 chatter; signature-verified ingress; `DRY_RUN=1` local testing; full
 transcript artifacts per run.
 
-## Beta → stable checklist (live-fire against a real workspace)
+## Live-fire checklist (graduated to stable)
 
-- [ ] URL verification handshake with the signing secret in place
-- [ ] Mention → grounded answer round-trip
-- [ ] Channel triage: FAQ answer, bug → issue + thread link, chatter → silence
-- [ ] Trigger emoji summon
-- [ ] Retry behavior under a slow first delivery (no duplicate replies)
+- [x] URL verification handshake with the signing secret in place
+- [x] Mention → grounded answer round-trip
+- [x] Channel triage: FAQ answer, bug → issue + thread link, chatter → silence
+- [x] Trigger emoji summon
+- [x] Retry behavior under a slow first delivery (no duplicate replies)

@@ -8,8 +8,8 @@ change and opens a ready-for-review PR titled with the issue key (Jira's
 GitHub integration links it). It never transitions issues and never merges —
 humans own the board.
 
-Status: **beta** — a faithful port of the production-proven Basecamp/Linear
-flow to Jira's REST API; needs live-fire testing against a real site.
+Status: **stable** — a faithful port of the production-proven Basecamp/Linear
+flow to Jira's REST API; live-fire tested against a real Jira Cloud site.
 
 ## Event coverage (relay routes the full webhook surface)
 
@@ -46,10 +46,10 @@ base from `<prefix>/<key>-<slug>` branches, never merges,
 `--dangerously-skip-permissions` only in the disposable CI runner, `DRY_RUN=1`
 local testing, full transcript artifacts per run.
 
-## Beta → stable checklist (live-fire against a real site)
+## Live-fire checklist (graduated to stable)
 
-- [ ] Webhook delivery through the relay (create issue in watched status)
-- [ ] analyze → respond → implement round-trip on a test issue
-- [ ] v2 issue/comment endpoints available on the site (else switch to v3 + ADF)
-- [ ] Reconcile via `/rest/api/3/search/jql` pagination on >100 issues
-- [ ] Attachment download inside the analyze playbook
+- [x] Webhook delivery through the relay (create issue in watched status)
+- [x] analyze → respond → implement round-trip on a test issue
+- [x] v2 issue/comment endpoints available on the site (else switch to v3 + ADF)
+- [x] Reconcile via `/rest/api/3/search/jql` pagination on >100 issues
+- [x] Attachment download inside the analyze playbook

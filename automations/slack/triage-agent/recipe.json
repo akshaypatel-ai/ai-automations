@@ -2,7 +2,7 @@
   "name": "Slack Triage Agent",
   "description": "Answers @mentions and DMs grounded in your code, triages designated channels (FAQs answered, real bugs escalated as GitHub issues), trigger-emoji summons. Signed Events API relay with 3s ack.",
   "tool": "slack",
-  "status": "beta",
+  "status": "stable",
   "runtime": "github-actions",
   "brains": ["claude-code", "codex", "gemini-cli"],
   "handlers": ["mentions", "channel", "reactions", "dm"],
